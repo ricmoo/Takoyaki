@@ -1,0 +1,65 @@
+<html>
+    <head>
+        <style type="text/css">
+            html {
+                margin: 0;
+            }
+            body {
+                margin: 0;
+            }
+            div {
+                box-sizing: border-box;
+            }
+            .card {
+                border: 5px solid #333;
+                border-radius: 40px;
+                box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.25);
+                left: 50%;
+                padding: 40px;
+                position: absolute;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                height: 500px;
+                width: 500px;
+            }
+            .title {
+                color: #bbb;
+                font-size: 100px;
+                font-family: monospace;
+                text-align: center;
+            }
+            .subtitle {
+                color: #ddd;
+                font-size: 40px;
+                text-align: right;
+            }
+            .takoyaki {
+                text-align: center;
+            }
+            .address {
+                color: #444;
+                font-family: monospace;
+                font-size: 20px;
+                letter-spacing: 0.1ex;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+    <!--
+        <div class="title">takoyaki<span class="super">.eth</span></div>
+        -->
+        <div class="card">
+            <div class="title">ricmoo</div>
+            <div class="subtitle">.takoyaki.eth</div>
+            <div class="takoyaki">
+                <img src="./blue.png" height="256" width="256"/>
+            </div>
+            <div class="address">
+                 0x8ba1f109551bD432803012645Ac136ddd64DBA72
+            </div>
+        </div>
+        <script type="text/javascript" src="ethers.js"></script>
+        <script type="text/javascript" src="./takoyaki.js"></script>
+    </body>
+</html>

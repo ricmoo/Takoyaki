@@ -1,0 +1,30 @@
+{
+  "name": "takoyaki",
+  "version": "0.0.1",
+  "description": "ENS Registrar for takoyaki.eth subnames.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ricmoo/Takoyaki.git"
+  },
+  "keywords": [
+    "Ethereum",
+    "ENS",
+    "takoyaki"
+  ],
+  "author": "Richard Moore <me@ricmoo.com> (https://www.ricmoo.com)",
+  "contributors": [
+    "Yuet-Loo Wong <yuet.wong@gmail.com> (http://www.yuetloo.com)"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ricmoo/Takoyaki/issues"
+  },
+  "homepage": "https://github.com/ricmoo/Takoyaki#readme",
+  "dependencies": {
+    "ethers": "^5.0.0-beta.134"
+  }
+}
