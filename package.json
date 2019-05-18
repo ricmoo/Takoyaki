@@ -1,15 +1,12 @@
 {
+<<<<<<< HEAD
   "name": "takoyaki",
   "version": "0.0.1",
   "description": "ENS Registrar for takoyaki.eth subnames.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ricmoo/Takoyaki.git"
-  },
+=======
+  "name": "Takoyaki",
+  "version": "1.0.0",
+  "description": "",
   "keywords": [
     "Ethereum",
     "ENS",
@@ -25,6 +22,7 @@
   },
   "homepage": "https://github.com/ricmoo/Takoyaki#readme",
   "dependencies": {
+    "@ethersproject/cli": "^5.0.0-beta.129",
     "ethers": "^5.0.0-beta.134"
   }
 }
