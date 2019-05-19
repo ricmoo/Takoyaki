@@ -1,4 +1,4 @@
-const address = "0xa4E70EdD43a35622BE6E61fC0a9539222C0dDbB7";
+const address = "0xea4177a625e15e00c2e077724d3c76ed63923519";
 
 const ABI = [
     "function test(bytes32 txPreimage, bytes32 rx) public view returns (address)",

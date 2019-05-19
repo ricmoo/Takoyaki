@@ -5,6 +5,8 @@
 const { inherits } = require('util');
 const { ethers } = require('ethers');
 const { CLI, dump, Plugin } = require('@ethersproject/cli/cli');
+const fs = require('fs');
+const { compile } = require('@ethersproject/cli/solc');
 
 const MIN_REGISTRATION_DURATION_IN_DAYS = 28;
 const PERMANENT_REGISTRAR_ID = '0x018fac06';
@@ -31,6 +33,57 @@ const cli = new CLI();
 
 function RegisterPlugin() {}
 inherits(RegisterPlugin, Plugin);
+
+function DeployPlugin() {}
+inherits(DeployPlugin, Plugin);
+
+DeployPlugin.getHelp = function() {
+  return {
+    name: 'deploy ENS_NAME',
+    help: 'deploy the takoyaki contract for ENS_NAME'
+  };
+};
+
+DeployPlugin.prototype.prepareArgs = async function(args) {
+  await Plugin.prototype.prepareArgs.call(this, args);
+  if (args.length !== 1) {
+    this.throwUsageError('deploy requires ENS_NAME');
+  }
+
+  if (this.accounts.length !== 1) {
+    this.throwError('deploy requires an account');
+  }
+
+  this.ensName = args[0];
+};
+
+DeployPlugin.prototype.run = async function(a) {
+  await Plugin.prototype.run.call(this);
+  let code = compile(
+    fs.readFileSync('./contracts/TakoyakiRegistrar.sol').toString(),
+    {
+      optimize: true
+    }
+  ).filter(c => c.name === 'TakoyakiRegistrar')[0];
+
+  let factory = new ethers.ContractFactory(
+    code.interface,
+    code.bytecode,
+    this.accounts[0]
+  );
+
+  let network = await this.provider.getNetwork();
+  let contract = await factory.deploy(
+    network.ensAddress,
+    ethers.utils.namehash(this.ensName),
+    {
+      gasLimit: 2000000
+    }
+  );
+
+  let receipt = await contract.deployed();
+  console.log(receipt);
+};
 
 RegisterPlugin.getHelp = function() {
   return {
@@ -183,6 +236,8 @@ RegisterPlugin.prototype.run = async function(a) {
 };
 
 cli.addPlugin('register', RegisterPlugin);
+cli.addPlugin('deploy', DeployPlugin);
+
 cli.run(process.argv.slice(2)).catch(err => {
   this.throwError(err);
 });
