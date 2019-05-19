@@ -23,16 +23,16 @@ contract TakoyakiRegistrar {
     bytes32 constant NODE_RR = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
     // namehash('resolver.eth')
-    bytes32 constant NODE_RESOLVER = 0x844798b1177dc46bd9c9633047b7372ae21a35fd2400900442115cba3f5db1fc;
+    bytes32 constant NODE_RESOLVER = 0xfdd5d5de6dd63db72bbc2d487944ba13bf775b50a80805fe6fcaba9b0fba88f5;
 
-    // Standard S to use for keyless EOA
+    // Standard S we use for trustless, keyless EOA
     bytes32 constant KEYLESS_S = 0x0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead;
 
     struct Takoyaki {
         uint48 expires;
         uint48 randomIndex;
+        address owner;
     }
-
 
     event Commit(address indexed funder, bytes32 indexed txPreimage, bytes32 rx);
     event Registered(string label, address indexed owner);
@@ -62,6 +62,8 @@ contract TakoyakiRegistrar {
         _nextNonce = nodehash;
         _admin = msg.sender;
 
+        _randomValues.push(nodehash);
+
         // Give the admin access to the reverse entry
         //ReverseRegistrar(_ens.owner(NODE_RR)).claim(_admin);
 
@@ -70,11 +72,11 @@ contract TakoyakiRegistrar {
     }
 
     function setAdmin(address admin) public {
-        require(msg.sender == admin);
+        require(msg.sender == _admin);
         _admin = admin;
 
         // Give the admin access to the reverse entry
-        ReverseRegistrar(_ens.owner(NODE_RR)).claim(admin);
+        //ReverseRegistrar(_ens.owner(NODE_RR)).claim(admin);
     }
 
     function defaultResolver() public view returns (address) {
@@ -86,7 +88,8 @@ contract TakoyakiRegistrar {
     // to update as well.
     function updateResolver() public {
         require(msg.sender == _admin);
-        _defaultResolver = Resolver(0x5FfC014343cd971B7eb70732021E26C35B744cc4); //Resolver(Resolver(_ens.resolver(NODE_RESOLVER)).addr(NODE_RESOLVER));
+        _defaultResolver = Resolver(0x5FfC014343cd971B7eb70732021E26C35B744cc4);
+        //_defaultResolver = Resolver(Resolver(_ens.resolver(NODE_RESOLVER)).addr(NODE_RESOLVER));
     }
 
     function fee() public view returns (uint) {
@@ -126,7 +129,7 @@ contract TakoyakiRegistrar {
         // Forward enough ether to the k-EOA to call reveal
         // - We bump the gasPrice up 10%
         // - Send enough for 150,000 gas
-        address(uint160(kEoa)).transfer((tx.gasprice * 11 / 10) * 1000000);
+        address(uint160(kEoa)).transfer((tx.gasprice * 11 / 10) * 250000);
 
         emit Commit(msg.sender, txPreimage, rx);
 
@@ -149,13 +152,14 @@ contract TakoyakiRegistrar {
     }
 
     function reveal(string memory label, bytes32 randomValue, address owner) public {
-        // Must have an associated commit
+
+        // Must have an associated precommit
         require(_kEoaCommits[msg.sender] > 0, "missing commit");
 
         // Name must be valid
         require(isValidLabel(label), "invalid label");
 
-        // Clear the commit
+        // Clear the precommit
         _kEoaCommits[msg.sender] = 0;
 
         bytes32 labelHash = keccak256(bytes(label));
@@ -163,11 +167,12 @@ contract TakoyakiRegistrar {
 
         Takoyaki storage takoyaki = _takoyaki[nodehash];
 
-        // Alrady owned and not expired
+        // Already owned and not expired
         require(takoyaki.expires < now + (30 days), "already owned");
 
         takoyaki.expires = uint48(now + (365 days));
         takoyaki.randomIndex = uint48(_randomValues.length);
+        takoyaki.owner = owner;
 
         // Make this registrar the owner (so we can set it up before giving it away)
         _ens.setSubnodeOwner(_nodehash, labelHash, address(this));
@@ -180,7 +185,7 @@ contract TakoyakiRegistrar {
         _ens.setOwner(nodehash, owner);
 
         // Stir in the random value to the generator (does keccak reduce our strength?)
-//        _randomValues.push(keccak256(abi.encode(randomValue, _randomValues[_randomValues.length - 1])));
+        _randomValues.push(keccak256(abi.encode(randomValue, _randomValues[_randomValues.length - 1])));
 
         emit Registered(label, owner);
     }
@@ -201,14 +206,23 @@ contract TakoyakiRegistrar {
         return _randomValues[height];
     }
 
-    function transfer() public {
-        require(msg.sender == _admin);
-        _ens.setOwner(_nodehash, _admin);
+    function transfer(string memory label, address newOwner) public {
+        bytes32 labelHash = keccak256(bytes(label));
+        bytes32 nodehash = keccak256(abi.encode(_nodehash, labelHash));
+
+        Takoyaki storage takoyaki = _takoyaki[nodehash];
+        require(msg.sender == takoyaki.owner);
+        require(takoyaki.expires > now);
+        takoyaki.owner = newOwner;
+
+        // Now give it to the new owner
+        //_ens.setOwner(nodehash, owner);
+        _ens.setSubnodeOwner(_nodehash, labelHash, newOwner);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
         Takoyaki memory takoyaki = _takoyaki[bytes32(tokenId)];
         require(takoyaki.expires > now);
-        return _ens.owner(bytes32(tokenId));
+        return takoyaki.owner;
     }
 }

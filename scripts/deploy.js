@@ -16,7 +16,7 @@ const { ethers } = require("ethers");
     let network = await provider.getNetwork();
     console.log(network);
 
-    let contract = await factory.deploy(network.ensAddress, namehash("penguins.eth"), {
+    let contract = await factory.deploy(network.ensAddress, namehash("takoyaki.eth"), {
        gasLimit: 2000000
     })
     console.log(contract);

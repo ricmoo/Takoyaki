@@ -1,4 +1,4 @@
-const address = "0xa4E70EdD43a35622BE6E61fC0a9539222C0dDbB7";
+const address = "0x6C7c09740209c9c3EdcF65971D4616FFf0054621";
 
 const ABI = [
     "function test(bytes32 txPreimage, bytes32 rx) public view returns (address)",
@@ -23,7 +23,7 @@ const registrar = new Contract(address, ABI, accounts[0]);
     revealTx.nonce = 0;
     revealTx.chainId = provider.getNetwork().then(n => n.chainId);
     revealTx.gasPrice = gasPrice.mul(11).div(10);
-    revealTx.gasLimit = 500000;
+    revealTx.gasLimit = 250000;
 
     revealTx = await utils.resolveProperties(revealTx);
     console.log("Reveal Later:", revealTx);
@@ -39,7 +39,6 @@ const registrar = new Contract(address, ABI, accounts[0]);
     let receipt = await commitTx.wait();
     console.dir(receipt, { depth: null });
     let serializedReveal = utils.serializeTransaction(revealTx, {
-//        r: receipt.events[0].values[2],
         r: receipt.logs[0].data,
         s: "0x0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead0c70dead",
         recoveryParam: 0
@@ -51,4 +50,4 @@ const registrar = new Contract(address, ABI, accounts[0]);
     console.log(tx);
     receipt = await provider.waitForTransaction(tx.hash);
     console.log(receipt);
-})("testing5");
+})("test1");
