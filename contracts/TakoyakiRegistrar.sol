@@ -1,5 +1,6 @@
 pragma solidity ^0.5.7;
 
+
 interface Resolver {
     function addr(bytes32 node) external view returns (address);
     function setAddr(bytes32 node, address addr) external;
@@ -31,6 +32,7 @@ contract TakoyakiRegistrar {
     struct Takoyaki {
         uint48 expires;
         uint48 randomIndex;
+        address owner;
     }
 
 
@@ -63,14 +65,14 @@ contract TakoyakiRegistrar {
         _admin = msg.sender;
 
         // Give the admin access to the reverse entry
-        //ReverseRegistrar(_ens.owner(NODE_RR)).claim(_admin);
+        ReverseRegistrar(_ens.owner(NODE_RR)).claim(_admin);
 
         // Setup the defaultResolver
         updateResolver();
     }
 
     function setAdmin(address admin) public {
-        require(msg.sender == admin);
+        require(msg.sender == _admin);
         _admin = admin;
 
         // Give the admin access to the reverse entry
@@ -168,6 +170,7 @@ contract TakoyakiRegistrar {
 
         takoyaki.expires = uint48(now + (365 days));
         takoyaki.randomIndex = uint48(_randomValues.length);
+        takoyaki.owner = owner;
 
         // Make this registrar the owner (so we can set it up before giving it away)
         _ens.setSubnodeOwner(_nodehash, labelHash, address(this));
@@ -201,14 +204,28 @@ contract TakoyakiRegistrar {
         return _randomValues[height];
     }
 
-    function transfer() public {
-        require(msg.sender == _admin);
-        _ens.setOwner(_nodehash, _admin);
+    function transfer(bytes32 labelHash, address newOwner) public {
+        Takoyaki storage takoyaki = _takoyaki[labelHash];
+        require(msg.sender == takoyaki.owner);
+        require(takoyaki.expires > now);
+        takoyaki.owner = newOwner;
+        _ens.setSubnodeOwner(_nodehash, labelHash, newOwner);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
         Takoyaki memory takoyaki = _takoyaki[bytes32(tokenId)];
         require(takoyaki.expires > now);
-        return _ens.owner(bytes32(tokenId));
+        return takoyaki.owner;
     }
+
+    /**
+     * Reclaim ownership of a name in ENS
+     */
+    /*
+    function reclaim(uint256 tokenId, address owner) external {
+        require(_ens.owner(_nodehash) == address(this));
+        require(msg.sender == _admin);
+        _ens.setSubnodeOwner(_nodehash, bytes32(tokenId), owner);
+    }
+    */
 }
