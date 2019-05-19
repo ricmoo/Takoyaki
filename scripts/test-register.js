@@ -50,4 +50,4 @@ const registrar = new Contract(address, ABI, accounts[0]);
     console.log(tx);
     receipt = await provider.waitForTransaction(tx.hash);
     console.log(receipt);
-})("test1");
+})("green1");
