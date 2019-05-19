@@ -13,7 +13,6 @@ interface AbstractENS {
     function resolver(bytes32 node) view external returns (address);
 }
 
-interface 
 interface ReverseRegistrar {
     function claim(address owner) external returns (bytes32 node);
 }
@@ -59,12 +58,12 @@ contract TakoyakiRegistrar {
     constructor(address ens, bytes32 nodehash) public {
         _ens = AbstractENS(ens);
         _nodehash = nodehash;
-        _fee = 0.1 ether;
+        _fee = (0.1 ether);
         _nextNonce = nodehash;
         _admin = msg.sender;
 
         // Give the admin access to the reverse entry
-        ReverseRegistrar(_ens.owner(NODE_RR)).claim(_admin);
+        //ReverseRegistrar(_ens.owner(NODE_RR)).claim(_admin);
 
         // Setup the defaultResolver
         updateResolver();
@@ -87,7 +86,7 @@ contract TakoyakiRegistrar {
     // to update as well.
     function updateResolver() public {
         require(msg.sender == _admin);
-        _defaultResolver = Resolver(Resolver(_ens.resolver(NODE_RESOLVER)).addr(NODE_RESOLVER));
+        _defaultResolver = Resolver(0x5FfC014343cd971B7eb70732021E26C35B744cc4); //Resolver(Resolver(_ens.resolver(NODE_RESOLVER)).addr(NODE_RESOLVER));
     }
 
     function fee() public view returns (uint) {
@@ -127,7 +126,7 @@ contract TakoyakiRegistrar {
         // Forward enough ether to the k-EOA to call reveal
         // - We bump the gasPrice up 10%
         // - Send enough for 150,000 gas
-        address(uint160(kEoa)).transfer((tx.gasprice * 11 / 10) * 150000);
+        address(uint160(kEoa)).transfer((tx.gasprice * 11 / 10) * 1000000);
 
         emit Commit(msg.sender, txPreimage, rx);
 
@@ -150,12 +149,11 @@ contract TakoyakiRegistrar {
     }
 
     function reveal(string memory label, bytes32 randomValue, address owner) public {
-
         // Must have an associated commit
-        require(_kEoaCommits[msg.sender] > 0);
+        require(_kEoaCommits[msg.sender] > 0, "missing commit");
 
         // Name must be valid
-        require(isValidLabel(label));
+        require(isValidLabel(label), "invalid label");
 
         // Clear the commit
         _kEoaCommits[msg.sender] = 0;
@@ -166,7 +164,7 @@ contract TakoyakiRegistrar {
         Takoyaki storage takoyaki = _takoyaki[nodehash];
 
         // Alrady owned and not expired
-        require(takoyaki.expires < now + (30 days));
+        require(takoyaki.expires < now + (30 days), "already owned");
 
         takoyaki.expires = uint48(now + (365 days));
         takoyaki.randomIndex = uint48(_randomValues.length);
@@ -182,7 +180,7 @@ contract TakoyakiRegistrar {
         _ens.setOwner(nodehash, owner);
 
         // Stir in the random value to the generator (does keccak reduce our strength?)
-        _randomValues.push(keccak256(abi.encode(randomValue, _randomValues[_randomValues.length - 1])));
+//        _randomValues.push(keccak256(abi.encode(randomValue, _randomValues[_randomValues.length - 1])));
 
         emit Registered(label, owner);
     }
@@ -201,6 +199,11 @@ contract TakoyakiRegistrar {
 
     function getRandomValueAtHeight(uint48 height) public view returns (bytes32) {
         return _randomValues[height];
+    }
+
+    function transfer() public {
+        require(msg.sender == _admin);
+        _ens.setOwner(_nodehash, _admin);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
