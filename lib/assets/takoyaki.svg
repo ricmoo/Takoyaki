@@ -411,16 +411,9 @@
 				</g>
 			</g>
 			<g id="tattoo-16">
-				<g sketch:type="MSLayerGroup">
-					<path sketch:type="MSShapeGroup" class="st8" d="M229.8,126.4l8.6,10.7l-3.9-10.7H229.8"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M235.3,126.4l4.2,11.4l4.3-11.4H235.3"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M240.4,137.4l8.9-11h-4.8L240.4,137.4"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M245.9,120.6h-5.6l3.8,4.7L245.9,120.6"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M243.5,125.7l-3.9-4.8l-3.9,4.8H243.5"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M238.8,120.6h-5.6l1.7,4.7L238.8,120.6"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M232.6,121.1l-2.9,4.6h4.6L232.6,121.1"/>
-					<path sketch:type="MSShapeGroup" class="st8" d="M249.4,125.7l-2.9-4.6l-1.7,4.6H249.4"/>
-				</g>
+				<path class="st8" d="M230.9,126.4l8.6,10.7l-3.9-10.7H230.9 M236.4,126.4l4.2,11.4l4.3-11.4H236.4 M241.5,137.4l8.9-11h-4.8
+					L241.5,137.4 M247,120.6h-5.6l3.8,4.7L247,120.6 M244.6,125.6l-3.9-4.8l-3.9,4.8H244.6 M239.9,120.6h-5.6l1.7,4.7L239.9,120.6
+					 M233.7,121l-2.9,4.6h4.6L233.7,121 M250.5,125.6l-2.9-4.6l-1.7,4.6H250.5"/>
 			</g>
 			<g id="tattoo-17">
 				<path class="st8" d="M239.7,119.1c0,0-9,7.1-9,12.1c0,0.3,0,0.6,0.1,0.9c0.6,4,5,4.6,8.5,1.5c-1.1,2.2-2.9,4.7-2.9,4.7h6.5

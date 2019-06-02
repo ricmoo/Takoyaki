@@ -1,6 +1,6 @@
 {
   "name": "takoyaki",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "The Takoyaki NFT library.",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
   ],
   "author": "Richard Moore <me@ricmoo.com>",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "browserify": "^16.2.3"
   },
   "repository": {
