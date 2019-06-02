@@ -1,0 +1,24 @@
+{
+  "name": "metadata-service",
+  "version": "0.0.1",
+  "description": "Takoyaki metadata service.",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "git subtree push --prefix metadata-service heroku master",
+    "start": "node index.js",
+    "local": "heroku local web",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "takoyaki",
+    "ethereum"
+  ],
+  "author": "Richard Moore <me@ricmoo.com> (https://www.ricmoo.com)",
+  "license": "MIT",
+  "dependencies": {
+    "convert-svg-to-png": "^0.5.0",
+    "ethers": "^5.0.0-beta.136",
+    "punycode": "^2.1.1",
+    "takoyaki": "0.0.2"
+  }
+}
