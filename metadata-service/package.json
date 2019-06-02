@@ -4,7 +4,6 @@
   "description": "Takoyaki metadata service.",
   "main": "index.js",
   "scripts": {
-    "deploy": "git subtree push --prefix metadata-service heroku master",
     "start": "node index.js",
     "local": "heroku local web",
     "test": "echo \"Error: no test specified\" && exit 1"

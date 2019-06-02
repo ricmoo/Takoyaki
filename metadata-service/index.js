@@ -30,6 +30,7 @@ const ContentTypes = {
     HTML: "text/html; charset=utf-8",
     JSON: "application/json; charset=utf-8",
     PNG: "image/png",
+    SVG: "image/svg+xml",
     TXT: "text/plain",
 };
 
@@ -159,6 +160,14 @@ const server = http.createServer((request, response) => {
         // Redirect non-directory paths to the directory path
         if (match = pathname.match(/^\/(json|svg|png)\/([0-9a-f]{64})$/)) {
             redirect(response, `/${ match[1] }/${ match[2] }/`);
+
+        } else if (match = pathname.match(/^\/svg\/([0-9a-f]{64})\/$/)) {
+            let tokenId = match[1];
+            let traits = takoyaki.randomTraits();
+            let svg = takoyaki.getSvg(5, traits);
+            send(svg, ContentTypes.SVG, {
+                "Content-Disposition": `inline; filename="takoyaki-${ tokenId.substring(0, 10) }.svg"`
+            });
 
         } else if (match = pathname.match(/^\/png\/([0-9a-f]{64})\/$/)) {
             let tokenId = match[1];
