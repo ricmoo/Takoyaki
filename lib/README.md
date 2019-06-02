@@ -4,12 +4,12 @@ Takoyaki NFT
 Welcome to the Takoyaki NFT library.
 
 The goal of this library is to simplify interacting with the
-Takoyaki NFTs (Non-Fungible Tokens) on the Etehreum blockchain.
+Takoyaki NFTs (Non-Fungible Tokens) on the Ethereum blockchain.
 
 It contains the art asset rendering an trait computation functions
 needed to create client side SVG files for a given set of traits
 as well as the algorithms required to compute the traits from the
-on-chain (Ethereum) data for a given Takoyaki.
+on-chain data for a given Takoyaki.
 
 
 API
