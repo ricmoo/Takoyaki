@@ -7,7 +7,8 @@ const { resolve } = require("path");
 const urlParse = require('url').parse;
 
 const takoyaki = require("takoyaki");
-//const takoyaki = require("../takoyaki/lib");
+//console.log("Warning: Using local debug takoyaki library...");
+//const takoyaki = require("../lib");
 
 const { createConverter } = require("convert-svg-to-png");
 const ethers = require("ethers");
@@ -234,5 +235,5 @@ const server = http.createServer((request, response) => {
 })
 
 server.listen(Port, () => {
-    console.log('meta.takoyaki.cafe API is running on port: ' + Port);
+    console.log('takoyaki.nftmd.com API is running on port: ' + Port);
 });
