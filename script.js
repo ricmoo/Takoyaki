@@ -54,7 +54,7 @@
         // Create a single Takoyaki tile for teh background
         function createTakoyakiFace(label, traits) {
             let div = document.createElement("div");
-            div.style.background = Takoyaki.getBackgroundColor(label);
+            div.style.background = Takoyaki.getLabelColor(label);
             div.innerHTML = Takoyaki.getSvg(traits);
 
             let span = document.createElement("span");
@@ -82,8 +82,8 @@
             SetTile[id] = function(label, traits) {
                 let div = (current % 2) ? back: front;
 
-                div.style.background = Takoyaki.getBackgroundColor(label);
-                div.style.borderColor = Takoyaki.getBackgroundColor(label, 90, 50);
+                div.style.background = Takoyaki.getLabelColor(label);
+                div.style.borderColor = Takoyaki.getLabelColor(label, 90, 50);
 
                 if (current > 1) {
                     div.classList.add("highlight");
