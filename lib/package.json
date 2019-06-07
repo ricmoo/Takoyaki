@@ -1,6 +1,6 @@
 {
   "name": "takoyaki",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "The Takoyaki NFT library.",
   "main": "index.js",
   "scripts": {
@@ -16,10 +16,16 @@
   "author": "Richard Moore <me@ricmoo.com>",
   "license": "MIT",
   "devDependencies": {
-    "browserify": "^16.2.3"
+    "browserify": "^16.2.3",
+    "uglify-es": "^3.3.9"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/ricmoo/Takoyaki.git"
+  },
+  "dependencies": {
+    "@ethersproject/contracts": "^5.0.0-beta.129",
+    "@ethersproject/hash": "^5.0.0-beta.124",
+    "@ethersproject/keccak256": "^5.0.0-beta.124"
   }
 }
