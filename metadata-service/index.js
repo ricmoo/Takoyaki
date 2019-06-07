@@ -7,6 +7,7 @@ const { resolve } = require("path");
 const urlParse = require('url').parse;
 
 const takoyaki = require("takoyaki");
+
 //console.log("Warning: Using local debug takoyaki library...");
 //const takoyaki = require("../lib");
 
@@ -23,7 +24,8 @@ const Provider = (function() {
         infura: "6189cea41bac431286af08a06df219be",
         etherscan: undefined
     };
-    return ethers.getDefaultProvider(process.env.NETWORK || "homestead");
+//    return ethers.getDefaultProvider(process.env.NETWORK || "homestead");
+    return ethers.getDefaultProvider(process.env.NETWORK || "ropsten");
 })();
 
 
@@ -159,50 +161,64 @@ const server = http.createServer((request, response) => {
         let match = null;
 
         // Redirect non-directory paths to the directory path
-        if (match = pathname.match(/^\/(json|svg|png)\/([0-9a-f]{64})$/)) {
+        if (match = pathname.match(/^\/(json|svg|png)\/(random|[0-9a-f]{64})$/)) {
             redirect(response, `/${ match[1] }/${ match[2] }/`);
 
-        } else if (match = pathname.match(/^\/svg\/([0-9a-f]{64})\/$/)) {
-            let tokenId = match[1];
-            let traits = takoyaki.randomTraits();
-            let svg = takoyaki.getSvg(5, traits);
-            send(svg, ContentTypes.SVG, {
-                "Content-Disposition": `inline; filename="takoyaki-${ tokenId.substring(0, 10) }.svg"`
-            });
+        } else if (match = pathname.match(/^\/(svg|png)\/(random|[0-9a-f]{64})\/$/)) {
+            let kind = match[1];
+            let tokenId = match[2];
 
-        } else if (match = pathname.match(/^\/png\/([0-9a-f]{64})\/$/)) {
-            let tokenId = match[1];
-            let query = queryParse(url.query);
-
-            // Get the dimensions for the image
-            // - Default: 256x256
-            // - Must be a positive integer
-            // - Must be <= 1024x1024
-            let options = { height: 256, width: 256 };
-            try {
-                if (query.size != null) {
-                    if (!query.size.match(/^[0-9]+$/)) {
-                        throw new Error("invalid size: " + query.size);
-                    }
-                    let size = parseInt(query.size);
-                    if (size > 1024) { size = 1024; }
-                    options.height = options.width = size;
-                }
-            } catch (error) {
-                console.log(error);
-                return sendError(400, "Bad PNG Dimension");
+            let filename = null;
+            let traitsPromise = null;
+            if (tokenId === "random") {
+                filename = "random";
+                let traits = takoyaki.randomTraits();
+                takoyaki.randomTraits()
+                traitsPromise = Promise.resolve(traits);
+            } else {
+                filename = tokenId.substring(0, 10);
+                traitsPromise = takoyaki.getTraits(Provider, "0x" + tokenId);
             }
 
-            // Render the SVG file
-            let traits = takoyaki.randomTraits();
-            let svg = takoyaki.getSvg(5, traits);
-            getConverter().convert(svg, options).then((png) => {
-                send(png, ContentTypes.PNG, {
-                    "Content-Disposition": `inline; filename="takoyaki-${ tokenId.substring(0, 10) }.png"`
-                });
-            }, (error) => {
-                console.log(error);
-                sendError(500, "Server Error");
+            traitsPromise.then((traits) => {
+                let svg = takoyaki.getSvg(traits);
+
+                if (kind === "svg") {
+                    send(svg, ContentTypes.SVG, {
+                        "Content-Disposition": `inline; filename="takoyaki-${ filename }.svg"`
+                    });
+
+                } else if (kind === "png") {
+                    let query = queryParse(url.query);
+
+                    // Get the dimensions for the image
+                    // - Default: 256x256
+                    // - Must be a positive integer
+                    // - Must be <= 1024x1024
+                    let options = { height: 256, width: 256 };
+                    try {
+                        if (query.size != null) {
+                            if (!query.size.match(/^[0-9]+$/)) {
+                                throw new Error("invalid size: " + query.size);
+                            }
+                            let size = parseInt(query.size);
+                            if (size > 1024) { size = 1024; }
+                            options.height = options.width = size;
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        return sendError(400, "Bad PNG Dimension");
+                    }
+
+                    getConverter().convert(svg, options).then((png) => {
+                        send(png, ContentTypes.PNG, {
+                            "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+                        });
+                    }, (error) => {
+                        console.log(error);
+                        sendError(500, "Server Error");
+                    });
+                }
             });
 
         } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
