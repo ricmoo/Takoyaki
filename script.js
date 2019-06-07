@@ -165,7 +165,7 @@
         return decodeURIComponent(comps[0]);
     })();
 
-    function getUrl(label) {
+    function getLink(label) {
         let comps = location.hostname.split(".");
 
         // Testing on locahost:8000/?LABEL_HERE
@@ -279,7 +279,7 @@
         input.onkeyup = function (event) {
             if (!button.classList.contains("enabled")) { return; }
             if (event.which === 13) {
-                location.href = getUrl(input.value);
+                location.href = getLink(input.value);
             }
         }
 
@@ -289,7 +289,7 @@
 
         button.onclick = function () {
             if (!button.classList.contains("enabled")) { return; }
-            location.href = getUrl(input.value);
+            location.href = getLink(input.value);
         }
 
     } else {
