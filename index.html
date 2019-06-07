@@ -1,0 +1,421 @@
+<html>
+    <head>
+        <style type="text/css">
+            html {
+                margin: 0;
+            }
+            body {
+                margin: 0;
+            }
+            div {
+                box-sizing: border-box;
+            }
+            #background {
+                height: 100%;
+                overflow: hidden;
+                position: relative;
+                width: 100%;
+                z-index: 1;
+            }
+
+            #background .tile {
+                perspective: 500px;
+                height: 160px;
+                transform-style: preserve-3d;
+                position: absolute;
+                width: 160px;
+                z-index: 1
+            }
+
+            #background .tile div {
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+                border-radius: 10px;
+                border: 1px solid black;
+                height: 160px;
+                overflow: hidden;
+                position: absolute;
+                transform-style: preserve-3d;
+                opacity: 0.2;
+                width: 160px;
+                transition: opacity 6.5s linear, transform 1.0s ease-out;
+            }
+
+            #background .tile div.backface {
+                transform: rotateY(-180deg);
+            }
+
+            #background .tile:hover div {
+                opacity: 1;
+                transition: opacity 0.8s linear, transform 1.0s ease-out;
+            }
+
+            #background .tile div.highlight {
+                opacity: 1;
+                transition: opacity 0.1s linear, transform 1.0s ease-out;
+            }
+            #background .tile span {
+               bottom: 10px;
+               color: #888;
+               display: block;
+               font-family: monospace;
+               font-size: 16px;
+               pointer-events: none;
+               position: absolute;
+               text-align: center;
+               left: 0;
+               width: 160px;
+            }
+            #search {
+                background: #fff;
+                border: 5px solid #333;
+                border-radius: 40px;
+                box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.25);
+                display: none;
+                left: 50%;
+                padding: 30px 40px 40px;
+                position: absolute;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 500px;
+                z-index: 2;
+            }
+            #search .title {
+                text-align: center;
+            }
+            #search input {
+                border: none;
+                color: #999;
+                font-size: 40px;
+                font-family: monospace;
+                outline :none;
+                text-align: center;
+                width: 100%;
+            }
+            #search .button-container {
+                padding: 40px 0 40px;
+            }
+            #card {
+                background: #fff;
+                border: 5px solid #333;
+                border-radius: 40px;
+                box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.25);
+                display: none;
+                left: 50%;
+                padding: 20px 40px 40px;
+                position: absolute;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 500px;
+                z-index: 2;
+            }
+            #card .title {
+                color: #999;
+                font-size: 50px;
+                font-family: monospace;
+                text-align: center;
+            }
+            .subtitle {
+                color: #ccc;
+                font-size: 40px;
+                text-align: right;
+            }
+            .subtitle b {
+                padding-left: 3px;
+                padding-right: 4px;
+            }
+            .takoyaki {
+                margin: 10px 0 10px 50%;
+                text-align: center;
+                height: 256px;
+                transform: translate(-50%, 0);
+                width: 256px;
+            }
+            .button {
+                border: 2px solid #333;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: bold;
+                left: 50%;
+                opacity: 0.1;
+                padding: 10px 18px;
+                position: absolute;
+                transform: translate(-50%, 0);
+                transition: opacity 0.1s linear;
+            }
+            .button.enabled {
+                opacity: 1;
+            }
+            .button.enabled:hover {
+                background: #88f;
+                border: 2px dashed #fff;
+                color: #fff;
+            }
+            .button.running {
+                opacity: 1;
+                background: url(./spinner.gif) no-repeat center center;
+                color: transparent;
+            }
+            .address {
+                color: #444;
+                font-family: monospace;
+                font-size: 20px;
+                letter-spacing: 0.1ex;
+                position: relative;
+                text-align: center;
+                white-space: pre;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="background"></div>
+        <div id="search">
+            <div><input id="input-search" placeholder="takoyaki-name" type="text"></div>
+            <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
+            <div class="button-container">
+                <div class="button" id="button-search">SEARCH</div>
+            </div>
+        </div>
+        <div id="card">
+            <div class="title" id="label"></div>
+            <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
+            <div class="takoyaki">
+                <div id="takoyaki"></div>
+            </div>
+                 <!-- 0x8ba1f109 551bD432 80301264 5Ac136dd d64DBA72 -->
+            <div class="address" id="address"><span class="button" id="buy">adopt me!?</span>
+            </div>
+        </div>
+
+        <script type="text/javascript" src="./lib/dist/takoyaki.js"></script>
+        <script type="text/javascript" src="./node_modules/ethers/dist/ethers.js"></script>
+        <script type="text/javascript" src="./script.js">
+        </script>
+    </body>
+</html>
+<!--
+        /*
+            (async function() {
+
+                // Setup the background. Center tiles of Takoyaki across the entire
+                // background, highlighting them randomly
+                (function() {
+                    const Background = document.getElementById("background");
+
+                    // Create a single Takoyaki tile for teh background
+                    function createTakoyakiTile(label, traits) {
+                        let div = document.createElement("div");
+                        Background.appendChild(div);
+                        div.className = "tile";
+
+                        let takoyaki = Takoyaki.getSvg(traits);
+
+                        let img = document.createElement("div");
+                        div.appendChild(img);
+                        img.style.background = Takoyaki.getBackgroundColor(label);
+                        img.innerHTML = takoyaki; //appendChild(takoyaki);
+
+                        let span = document.createElement("span");
+                        span.textContent = label;
+                        div.appendChild(span);
+
+                        return div;
+                    }
+
+                    // Fills the background with Takoyaki tiles (centered)
+                    function fillBackground() {
+                        let ox = ((window.innerWidth % 165) - 160) / 2;
+                        let oy = ((window.innerHeight % 165) - 160) / 2;
+                        let i = 0;
+                        for (let x = 0; x < window.innerWidth + 165; x += 165) {
+                            let j = 0;
+                            for (let y = 0; y < window.innerHeight + 165; y += 165) {
+                                let id = "tile_" + i + "_" + j;
+                                let tmp = document.getElementById(id);
+                                if (!tmp) {
+                                    tmp = createTakoyakiTile("foobar" + x + " " + y, Takoyaki.randomTraits());
+                                    tmp.id = id;
+                                }
+                                tmp.style.transform = ("translate(" + (ox + x) + "px, " + (oy + y) + "px)");
+                                j++;
+                            }
+                            i++;
+                        }
+                    }
+
+                    fillBackground();
+                    window.onresize = fillBackground;
+
+                    let tileHighlight = null;
+                    function highlight() {
+                        function isVisible(el) {
+                            return true; // @TODO: return true iff 75% of the tile is visible
+                        }
+                        let tiles = Array.prototype.filter.call(Background.children, isVisible);
+                        if (tileHighlight) {
+                            tileHighlight.classList.remove("highlight");
+                        }
+                        tileHighlight = tiles[parseInt(Math.random() * tiles.length)];
+                        tileHighlight.classList.add("highlight")
+                    }
+                    setInterval(highlight, 5000);
+                    highlight();
+                })();
+
+                // The label we are viewing (or "" for the root)
+                const label = (function () {
+                    let comps = location.hostname.split(".");
+
+                    // Testing on locahost:8000/?LABEL_HERE
+                    if (comps.length === 1) {
+                        let label = location.search.substring(1).trim();
+                        if (label) { label = decodeURIComponent(location.search.substring(1)); }
+                        return label;
+                    }
+
+                    // takoyaki.cafe
+                    if (comps === 2) { return ""; }
+
+                    // LABEL_HERE.takoyaki.cafe
+                    return decodeURIComponent(comps[0]);
+                })();
+
+                function getUrl(label) {
+                    let comps = location.hostname.split(".");
+
+                    // Testing on locahost:8000/?LABEL_HERE
+                    if (comps.length === 1) {
+                        return "http://localhost:8000/?" + encodeURIComponent(label);
+                    }
+
+                    return "https://" + encodeURIComponent(label) + ".takoyaki.cafe";
+                }
+
+                // Connect to whatever provider we can
+                const { providerPromise, getSigner } = (function() {
+                    //const supported = { homestead: true, ropsten: true };
+                    const supported = { ropsten: true };
+                    const defaultNetwork = "ropsten";
+
+                    if (window.ethereum) {
+                        let lastNetwork = -1000;
+                        function checkNetwork() {
+                            ethereum.send("eth_chainId").then((result) => {
+                                let network = ethers.providers.getNetwork(ethers.BigNumber.from(result.result).toNumber());
+                                if (lastNetwork >= 0 && network.chainId !== lastNetwork) {
+                                    return location.reload();
+                                };
+                                lastNetwork = network.chainId;
+                                setTimeout(checkNetwork, 1000);
+                            }, (error) => {
+                                console.log(error);
+                                setTimeout(checkNetwork, 1000);
+                            });
+                        }
+
+                        let networkPromise = ethereum.send("eth_chainId", [ ]).then((result) => {
+                            let network = ethers.providers.getNetwork(ethers.BigNumber.from(result.result).toNumber());
+
+                            lastNetwork = network.chainId;
+                            setTimeout(checkNetwork, 1000);
+
+                            if (!supported[network.name]) {
+                                return Promise.reject(new Error("unsupported network"));
+                            }
+
+                            return network;
+                        });
+
+                        let providerPromise = networkPromise.then((network) => {
+                            return new ethers.providers.Web3Provider(ethereum);
+                        }, (error) => {
+                            return ethers.getDefaultProvider(defaultNetwork)
+                        });
+
+                        let signerPromise = null;
+                        let getSigner = () => {
+                            if (signerPromise == null) {
+                                signerPromise = providerPromise.then((provider) => {
+                                    if (provider.getSigner == null) {
+                                        return Promise.reject("unsupported network");
+                                    }
+
+                                    return window.ethereum.enable().then((allowed) => {
+                                        if (allowed && allowed.length) {
+                                            return provider.getSigner(allowed[0]);
+                                        }
+                                        return Promise.reject(new Error("no authorized signer"));
+                                    });
+                                });
+                            }
+                            return signerPromise;
+                        }
+
+                        return { providerPromise, getSigner };
+                    }
+
+                    return {
+                        providerPromise: Promise.resolve(ethers.getDefaultProvider(defaultNetwork)),
+                        getSigner: () => Promise.resolve(null)
+                    };
+                })();
+
+                providerPromise.then((provider) => { console.log(provider); });
+                //signerPromise.then((signer) => { console.log(signer); });
+                getSigner().then((signer) => {
+                    console.log("Signer", signer);
+                });
+
+    // Root search view
+    if (label === "") {
+        const Search = document.getElementById("search");
+        Search.style.display = "block";
+
+        let input = document.getElementById("input-search");
+        let button = document.getElementById("button-search");
+
+        input.onkeyup = function(event) {
+            if (!button.classList.contains("enabled")) { return; }
+            if (event.which === 13) {
+                location.href = getUrl(input.value);
+            }
+        }
+
+        input.oninput = function() {
+            button.classList[input.value.length ? "add": "remove"]("enabled")
+        }
+
+        button.onclick = function() {
+            if (!button.classList.contains("enabled")) { return; }
+            location.href = getUrl(input.value);
+        }
+
+    } else {
+        const Card = document.getElementById("card");
+        Card.style.display = "block";
+        document.getElementById("label").textContent = label;
+
+        let img = document.getElementById("takoyaki");
+        let traits = Takoyaki.randomTraits();
+        traits.state = 0;
+        let takoyaki = Takoyaki.getSvg(traits);
+        img.innerHTML = takoyaki;
+
+        // Already done... Animate eating the shell.
+        if (traits.state > 4) {
+            for (let i = 0; i < 6; i++) {
+                (function(i) {
+                    setTimeout(() => {
+                        //showShell(takoyaki, i);
+                    }, i * 200);
+                })(i);
+            }
+            return true;
+        }
+    }
+
+
+
+            })();
+*/
+-->
