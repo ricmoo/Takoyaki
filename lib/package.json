@@ -1,8 +1,11 @@
 {
   "name": "takoyaki",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "The Takoyaki NFT library.",
   "main": "index.js",
+  "browser": {
+      "ethers": "./ethers-browser.js"
+  },
   "scripts": {
     "dist": "node ./scripts/generate.js && browserify ./index.js --standalone Takoyaki --outfile ./dist/takoyaki.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -24,9 +27,7 @@
     "url": "git://github.com/ricmoo/Takoyaki.git"
   },
   "dependencies": {
-    "@ethersproject/contracts": "^5.0.0-beta.129",
-    "@ethersproject/hash": "^5.0.0-beta.124",
-    "@ethersproject/keccak256": "^5.0.0-beta.124",
+    "ethers": ">=5.0.0-beta.141",
     "punycode": "2.1.1"
   }
 }
