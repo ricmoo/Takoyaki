@@ -1,44 +1,79 @@
 takoyaki.eth
 ============
 
-First and most importantly, it lets you register an ENS name with only signing a single transaction, while still properly having a complete commit/reveal period. It does this by using a technique called one-time keyless transactions.
-
-Second, it issues a unique artistic token, assigned to the ENS name for life. They are procedurally generated. And they are formed over time, incrementally providing instant gratification, while keeping a person present. It's basically the toy in the box of a cereal box, designed to trick you into doing something serious (like eat breakfast) while making it fun (by giving you a toy).
-
-Third, it bootstraps a RandDAO-like random-number generator, using the ENS commit-reveals. The non-transitive nature of ENS names makes it ideal for this purpose.
-
-
-Inspiration
------------
-
-We adore ENS. It is awesome. One of the most important part of internet infrastructure since staples such as DNS or SSL. The problem is that it is still a bit hard to use, requiring multiple transactions, and a bit of time investment, which can quickly detour people who don't see the immediate value.
+Each Takoyaki is a unique, cute ERC-721 Octopus token, which is also
+an [ENS name](https://ens.domains). It is meant as a fun and easy way
+to start your foray into ENS, which allows you to use a friendly name
+for your Ethereum address, rather than a long string of hexidecimal
+characters.
 
 
-How we built it
----------------
+Takoyaki began was our [ETHNewYork](https://ethnewyork.com) hackathon project.
 
-It is a collection of scripts for testing and experimenting purposes, but otherwise is a single Solidity contract and a single-page web page. The vast majority of the effort was getting the one-time keyless transactions to run smoothly and interface with the new ENS registrar, as we are far more experienced with the old, now deprecated API.
+We've since spruced it up a bit and are releasing it. :)
 
 
-Challenges we ran into
+Web Interface
+-------------
+
+By far, the easiest way to interact with Takoyaki, is using our website, https://takoyaki.cafe.
+
+
+
+API
+---
+
+The API allows anyone to easily interact with the Registrar and ERC-721 token
+contract on the Ethereum network, as well as generate the traits from on-chain
+data and finally render (entirely on the client side) a give Takoyaki for a
+given set of traits.
+
+The JavaScript API can be installed using:
+
+```
+/home/ricmoo/my-project> npm install --save takoyaki
+```
+
+**Takoyaki.connect(providerOrSigner)**
+
+TakoyakiContract.makeCommitment( label , owner , salt)
+TakoyakiContract.commit( label , owner , salt)
+TakoyakiContract.reveal( label , owner , salt)
+TakoyakiContract.getTraits( label , owner , salt)
+
+TakoyakiContract.fee()
+TakoyakiContract.totalSupply()
+TakoyakiContract.defaultResolver()
+TakoyakiContract.admin()
+TakoyakiContract.()
+
+**Takoyaki.getTraits(label)**
+**Takoyaki.getSvg(traits)**
+
+Command Line Interface
 ----------------------
 
-A few key pieces of terminology were changed, but with some amazing help from the ENS team (w00t Makoto), we were off to the races.
+```
+/home/ricmoo> takoyaki --help
 
-Accomplishments that we're proud of
------------------------------------
-
-It works. There are still a lot of assets we can add for the procedural generation, but we will likely look into finding an actual artist for that... Our art skills have already been pushed to the limit. :)
-
-What we learned
----------------
-
-There are a lot of moving parts... Beware of moving parts.
+Usage:
+    takoyaki commit LABEL [ --salt SALT ] [ --owner ADDRESS ]
+    takoyaki reveal LABEL [ --salt SALT ] [ --owner ADDRESS ]
+```
 
 
-What's next for Takoyaki
-------------------------
+Project Componets
+-----------------
 
-The technique used can be used in conjunction with the actual EthController, allowing single-signed-transactions to register top-level domains. We would also be interested in helping getting the commit-reveal internals exposed in a future version of the ETH registrar.
+- The [NPM library](https://github.com/ricmoo/Takoyaki/tree/master/lib); all the needed JavaScript libraries for blockchain interaction and composing the asset SVG (client-side)
+- The [Metadata Service](https://github.com/ricmoo/Takoyaki/tree/master/metadata-service); a Heroku app which returns JSON metadata, composed SVG and renders PNG images per Token
+- The [Takoyaki.cafe website](https://github.com/ricmoo/Takoyaki/tree/master/website); the complete website frontend, as well as a packaged single-file [dist](https://github.com/ricmoo/Takoyaki/tree/master/dist) which is availble online at [Takoyaki.cafe](https://takoyaki.cafe)
+- The [Command-Line Interface](https://github.com/ricmoo/Takoyaki/tree/master/bin); 
+- The [Solidity Contract](https://github.com/ricmoo/Takoyaki/blob/master/contracts/TakoyakiRegistrar.sol); the ERC-721 and Registrar contract on-chain, deployed on [mainnet](https://etherscan.io) and [ropsten](https://ropsten.etherscan.io)
 
-Also, a landing page, which shows recently purchased names along with their Takoyaki character.
+
+License
+-------
+
+All code is released under the MIT license and all artwork under the
+Creative Commons CC-BY-4.0 license.
