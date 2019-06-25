@@ -1,12 +1,14 @@
 {
-<<<<<<< HEAD
-  "name": "takoyaki",
+  "name": "root",
   "version": "0.0.1",
-  "description": "ENS Registrar for takoyaki.eth subnames.",
-=======
-  "name": "Takoyaki",
-  "version": "1.0.0",
-  "description": "",
+  "description": "ENS Registrar, management website and metadata website for takoyaki.eth subnames.",
+  "scripts": {
+    "deploy-metadata-service": "git subtree push --prefix metadata-service heroku master",
+    "deploy-metadata-serviec-force": "git push heroku `git subtree split --prefix metadata-service  master`:master --force",
+    "setup-heroku": "heroku git:remote -a takoyaki-meta",
+    "flatten": "meeseeks flatten index.html > dist/index.html",
+    "test": "mocha --timeout 600000 tests/test"
+  },
   "keywords": [
     "Ethereum",
     "ENS",
@@ -23,6 +25,8 @@
   "homepage": "https://github.com/ricmoo/Takoyaki#readme",
   "dependencies": {
     "@ethersproject/cli": "^5.0.0-beta.129",
-    "ethers": "^5.0.0-beta.134"
+    "ethers": "^5.0.0-beta.138",
+    "meeseeks-cli": "0.0.5",
+    "mocha": "^6.1.4"
   }
 }
