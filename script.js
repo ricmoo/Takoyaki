@@ -8,8 +8,9 @@
         const Card = document.getElementById("card");
         const Search = document.getElementById("search");
 
-        // Center (x, y) coordinate (updated in fillBackground)
-        //let cx = 400, cy = 300;
+        // Maps Tile id to function(label, traits) to reveal
+        const SetTile = { };
+        const LastTile = null;
 
         // Returns true if the element is not covered by the Card/Search
         // and not too far over the edge
@@ -51,19 +52,6 @@
             return false;
         }
 
-        // Create a single Takoyaki tile for teh background
-        function createTakoyakiFace(label, traits) {
-            let div = document.createElement("div");
-            div.style.background = Takoyaki.getLabelColor(label);
-            div.innerHTML = Takoyaki.getSvg(traits);
-
-            let span = document.createElement("span");
-            span.textContent = label;
-            div.appendChild(span);
-
-            return div;
-        }
-
         function createTakoyakiTile(id) {
             let tile = document.createElement("div");
             tile.className = "tile";
@@ -82,13 +70,17 @@
             SetTile[id] = function(label, traits) {
                 let div = (current % 2) ? back: front;
 
+                if (LastTile) { lastTile.classList.remove("highlight"); }
+                lastTile = div;
+
                 div.style.background = Takoyaki.getLabelColor(label);
                 div.style.borderColor = Takoyaki.getLabelColor(label, 90, 50);
 
                 if (current > 1) {
                     div.classList.add("highlight");
-                    setTimeout(() => { div.classList.remove("highlight"); }, 1000);
+                    setTimeout(() => { div.classList.remove("highlight"); }, 4000);
                 }
+
 
                 div.innerHTML = Takoyaki.getSvg(traits);
 
@@ -109,10 +101,7 @@
         }
 
         // Fills the background with Takoyaki tiles (centered)
-        const SetTile = { };
         function fillBackground() {
-            //cx = window.innerWidth / 2;
-            //cy = window.innerHeight / 2;
 
             let ox = ((window.innerWidth % 165) - 160) / 2;
             let oy = ((window.innerHeight % 165) - 160) / 2;
@@ -139,50 +128,68 @@
         window.onresize = fillBackground;
 
         function highlight() {
+            if (document.visibilityState != null && document.visibilityState !== "visible") {
+                return;
+            }
             let tiles = Array.prototype.filter.call(Background.children, isVisible);
             let tile = tiles[parseInt(Math.random() * tiles.length)];
             SetTile[tile.id]("ff" + (new Date()).getTime(), Takoyaki.randomTraits());
         }
         setInterval(highlight, 12000);
-        highlight();
+    })();
+
+    (function() {
+        const iconCopy = document.getElementById("icon-copy");
+        const infoCopy = document.getElementById("info-copy");
+        const input = document.getElementById("clipboard");
+        const address = document.getElementById("address");
+
+        let timer = null;
+
+        iconCopy.onclick = function() {
+            if (timer) { clearTimeout(timer); }
+            timer = setTimeout(() => {
+                infoCopy.textContent = "copy?";
+                infoCopy.classList.remove("highlight");
+                timer = null;
+            }, 1000);
+            try {
+                input.value = ethers.utils.getAddress(address.textContent.replace(/\s/g, ""));
+                input.focus();
+                input.select();
+                document.execCommand('copy');
+                infoCopy.textContent = "Copied!";
+            } catch (error) {
+                infoCopy.textContent = "error...";
+                console.log(error);
+            }
+            infoCopy.classList.add("highlight");
+        };
     })();
 
     // The label we are viewing (or "" for the root)
-    const label = (function () {
-        let comps = location.hostname.split(".");
+    // (for debugging, modify /etc/hosts to include LABEL.takoyaki.local and takoyaki.local)
+    const local = (location.hostname.split(".").pop() === "local");
+    const label = Takoyaki.urlToLabel(location.hostname);
 
-        // Testing on locahost:8000/?LABEL_HERE
-        if (comps.length === 1) {
-            let label = location.search.substring(1).trim();
-            if (label) { label = decodeURIComponent(location.search.substring(1)); }
-            return label;
-        }
-
-        // takoyaki.cafe
-        if (comps === 2) { return ""; }
-
-        // LABEL_HERE.takoyaki.cafe
-        return decodeURIComponent(comps[0]);
-    })();
-
-    function getLink(label) {
-        let comps = location.hostname.split(".");
-
-        // Testing on locahost:8000/?LABEL_HERE
-        if (comps.length === 1) {
-            return "http://localhost:8000/?" + encodeURIComponent(label);
-        }
-
-        return "https://" + encodeURIComponent(label) + ".takoyaki.cafe";
-    }
+    const errors = {
+        UNSUPPORTED_NETWORK: "UNSUPPORTED_NETWORK"
+    };
 
     // Connect to whatever provider we can
     const { providerPromise, getSigner } = (function () {
-        //const supported = { homestead: true, ropsten: true };
-        const supported = { ropsten: true };
-        const defaultNetwork = "ropsten";
+        const requiredNetwork = "ropsten";
+
+        let providerOptions = {
+            infura: "6189cea41bac431286af08a06df219be",
+            etherscan: "9D13ZE7XSBTJ94N9BNJ2MA33VMAY2YPIRB",
+            nodesmith: "f1b3ce218afb412bb4a6657825141885",
+            alchemy: "JrWxtuwXu_V5zN5kMUCnMRpxmqmuuT_h"
+        };
 
         if (window.ethereum) {
+
+            // Reload the page if the network changes
             let lastNetwork = -1000;
             function checkNetwork() {
                 ethereum.send("eth_chainId").then((result) => {
@@ -201,11 +208,12 @@
             let networkPromise = ethereum.send("eth_chainId", []).then((result) => {
                 let network = ethers.providers.getNetwork(ethers.BigNumber.from(result.result).toNumber());
 
+                // Start polling for network changes
                 lastNetwork = network.chainId;
                 setTimeout(checkNetwork, 1000);
 
-                if (!supported[network.name]) {
-                    return Promise.reject(new Error("unsupported network"));
+                if (network.name !== requiredNetwork) {
+                    return Promise.reject(new Error(errors.UNSUPPORTED_NETWORK));
                 }
 
                 return network;
@@ -214,7 +222,7 @@
             let providerPromise = networkPromise.then((network) => {
                 return new ethers.providers.Web3Provider(ethereum);
             }, (error) => {
-                return ethers.getDefaultProvider(defaultNetwork)
+                return ethers.getDefaultProvider(requiredNetwork, providerOptions)
             });
 
             let signerPromise = null;
@@ -240,13 +248,36 @@
         }
 
         return {
-            providerPromise: Promise.resolve(ethers.getDefaultProvider(defaultNetwork)),
+            providerPromise: Promise.resolve(ethers.getDefaultProvider(requiredNetwork, providerOptions)),
             getSigner: () => Promise.resolve(null)
         };
     })();
 
-    async function register(label) {
+    (function() {
+        if (window.ethereum) {
+            providerPromise.then((provider) => {
+                if (provider.getSigner == null) {
+                    document.getElementById("about-wrong-network").classList.remove("hidden");
+                } else {
+                    document.getElementById("about-ok").classList.remove("hidden");
+                }
+            });
+        } else {
+            document.getElementById("about-no-ethereum").classList.remove("hidden");
+        }
+    })();
 
+
+    const AdoptButton = document.getElementById("button-adopt");
+
+    const TakoyakiContainer = document.getElementById("takoyaki");
+
+    function draw(traits) {
+        TakoyakiContainer.innerHTML = Takoyaki.getSvg(traits);
+    }
+
+
+    async function register(label) {
         const provider = await providerPromise;
 
         // This is a temporary wallet we will use to issue the reveal. It doesn't
@@ -265,11 +296,134 @@
             return ethers.Wallet.fromMnemonic(dustMnemonic).connect(provider);
         })();
 
-        console.log(dustWallet);
+        console.log("Dust Wallet:", dustWallet.address);
+
+        let signer = await getSigner();
+        let owner = await signer.getAddress();
+
+        let contract = Takoyaki.connect(signer);
+
+        // Use a deterministic salt, so we can recalculate the same value as
+        // long as we have the dust wallet
+        let salt = ethers.utils.keccak256(await dustWallet.signMessage(label));
+
+        let revealTx = await contract.connect(dustWallet).populateTransaction.reveal(label, owner, salt);
+
+        let tx = await contract.commit(label, owner, salt, dustWallet.address, ethers.utils.parseEther("0.01"));
+        console.log(tx);
+        let receipt = await tx.wait();
+        console.log(receipt);
+
+        let hints = {
+            commitBlock: receipt.blockNumber,
+            salt: salt,
+            name: label
+        };
+        //watch(signer.provider, hints);
+
+        await tx.wait(4);
+        console.log("sending reveal");
+
+        tx = await contract.connect(dustWallet).reveal(label, owner, salt);
+        console.log(tx);
+        receipt = tx.wait();
+        console.log(receipt);
+
+        return true;
     }
 
-    // Root search view
-    if (label === "") {
+    // Card view of a single label
+    if (label) {
+        console.log("LABEL", label);
+
+        const Card = document.getElementById("card");
+        Card.style.display = "block";
+        document.getElementById("label").textContent = label;
+        document.getElementById("populate-label").textContent = label;
+
+        document.title = (label + " \u2013 Takoyaki!!");
+
+        let tokenId = ethers.utils.id(label);
+
+        providerPromise.then((provider) => {
+
+            let nodehash = ethers.utils.keccak256(ethers.utils.concat([
+                ethers.utils.namehash("takoyaki.eth"),
+                tokenId
+            ]));
+
+            provider.call({
+                to: provider.getNetwork().then((n) => n.ensAddress),
+                data: ("0x0178b8bf" + nodehash.substring(2))
+            }).then((data) => {
+                let resolverAddr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
+                if (resolverAddr === ethers.constants.AddressZero) { return null; }
+
+                return provider.call({
+                    to: ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12)),
+                    data: ("0x3b3b57de" + nodehash.slice(2))
+                }).then((data) => {
+                    let addr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
+                    document.getElementById("address").textContent = (
+                        addr.substring(0, 12) + " " +
+                        addr.substring(12, 22) + "      \n        " +
+                        addr.substring(22, 32) + " " +
+                        addr.substring(32, 42) + "    "
+                    );
+                    document.getElementById("icon-copy").classList.remove("hidden");
+                    return addr;
+                });
+            });
+
+
+            let contract = Takoyaki.connect(provider);
+            contract.getTraits(tokenId).then((traits) => {
+                console.log("TT", traits);
+
+                let traitsDraw = ethers.utils.shallowCopy(traits);
+                traitsDraw.state = 0;
+                draw(traitsDraw);
+
+                function drawNext() {
+                    console.log("DRAWNEXT", traitsDraw);
+
+                    if (traitsDraw.state < traits.state) {
+                        console.log("SCHED", traits.state);
+                        traitsDraw.state++;
+                        draw(traitsDraw);
+                        setTimeout(drawNext, 200);
+
+                    } else if (traits.state < 5) {
+                        if (traits.genes.expires < (((new Date()).getTime() / 1000 ) - (30 * 24 * 60 * 60))) {
+                            AdoptButton.classList.add("enabled");
+                        }
+
+                        function onBlock(blockNumber) {
+                            console.log("Block", blockNumber);
+                            let hints = {
+                                blockNumber: blockNumber
+                            };
+
+                            contract.getTraits(tokenId, hints).then((traits) => {
+                                console.log("new", traits, arguments);
+                                draw(traits);
+
+                                // Done; Unsubscribe!
+                                if (traits.state === 5) {
+                                    provider.off("block", onBlock);
+                                }
+                            });
+                        }
+
+                        provider.on("block", onBlock);
+                    }
+                }
+                setTimeout(drawNext, 200);
+            });
+        });
+
+    // Search view
+    } else {
         const Search = document.getElementById("search");
         Search.style.display = "block";
 
@@ -279,7 +433,7 @@
         input.onkeyup = function (event) {
             if (!button.classList.contains("enabled")) { return; }
             if (event.which === 13) {
-                location.href = getLink(input.value);
+                location.href = Takoyaki.labelToUrl(input.value, local);
             }
         }
 
@@ -289,37 +443,28 @@
 
         button.onclick = function () {
             if (!button.classList.contains("enabled")) { return; }
-            location.href = getLink(input.value);
-        }
-
-    } else {
-        const Card = document.getElementById("card");
-        Card.style.display = "block";
-        document.getElementById("label").textContent = label;
-
-        let img = document.getElementById("takoyaki");
-        let traits = Takoyaki.randomTraits();
-        traits.state = 5;
-
-        let traitsDraw = ethers.utils.shallowCopy(traits);
-        traitsDraw.state = 0;
-        img.innerHTML = Takoyaki.getSvg(traitsDraw);
-
-
-        // Already done... Animate eating the shell.
-        if (traits.state > 4) {
-            for (let i = 0; i < 6; i++) {
-                (function (i) {
-                    setTimeout(() => {
-                        traitsDraw.state = i
-                        img.innerHTML = Takoyaki.getSvg(traitsDraw);
-                    }, i * 200);
-                })(i);
-            }
-            //return true;
+            location.href = Takoyaki.labelToUrl(input.value, local);
         }
     }
 
-    //register("foobar");
+    AdoptButton.onclick = function() {
+        document.getElementById("about").classList.remove("hidden");
+    };
+
+    document.getElementById("button-close").onclick = function() {
+        document.getElementById("about").classList.add("hidden");
+    };
+
+    document.getElementById("button-hatch").onclick = function() {
+        AdoptButton.classList.remove("enabled");
+        AdoptButton.classList.add("running");
+        register(label).then(() => {
+            console.log("done?");
+        }, (error) => {
+            console.log(error);
+            AdoptButton.classList.remove("running");
+            AdoptButton.classList.add("enabled");
+        });
+    };
 
 })();
