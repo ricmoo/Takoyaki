@@ -1,4 +1,4 @@
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.9;
 
 /////////////////////////////
 // ENS Interfaces
@@ -218,12 +218,22 @@ contract TakoyakiRegistrar {
         return _fee;
     }
 
+    // A valid label is measured in bytes (not characters). This allows emoji and
+    // non-ASCII names to be less than 3 glyphs, but ensures ASCII names are at
+    // least 3 characters long. Names may not begin with a "0x" prefix (in either
+    // lowercase or uppercase). Otherwise, valid UTF-8 data is expected to be
+    // verified by the client.
     function isValidLabel(string memory label) public pure returns (bool) {
-        // @TODO
-        //  - min length? 3 maybe.
-        //  - max length? 20 maybe?
-        //  - Validate UTF-8? (prevent overlong? bad surrogates? Or just let the client fail)
-        //  - Not starting with 0x??
+        bytes memory data = bytes(label);
+
+        // Names MUST be between 3 bytes and 20 bytes (inclusive)
+        if (data.length < 3 || data.length > 20) { return false; }
+
+        // Names MUST NOT start with "0x" or "0X"
+        if (data[0] == 0x30 && (data[1] | 0x20) == 0x78) {
+            return false;
+        }
+
         return true;
     }
 
