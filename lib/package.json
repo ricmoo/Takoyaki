@@ -26,6 +26,7 @@
   "dependencies": {
     "@ethersproject/contracts": "^5.0.0-beta.129",
     "@ethersproject/hash": "^5.0.0-beta.124",
-    "@ethersproject/keccak256": "^5.0.0-beta.124"
+    "@ethersproject/keccak256": "^5.0.0-beta.124",
+    "punycode": "2.1.1"
   }
 }
