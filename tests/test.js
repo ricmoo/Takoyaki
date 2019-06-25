@@ -7,6 +7,8 @@ const { resolve } = require("path");
 const ethers = require("ethers");
 const { compile } = require("@ethersproject/cli/solc");
 
+const Takoyaki = require("../lib");
+
 const ens = require("./ens");
 
 // Start Parity in dev mode:
@@ -15,10 +17,25 @@ const ens = require("./ens");
 
 let provider = null;
 let admin = null;
-let contractAddress = null;
 let ABI = null;
 
 before(async function() {
+    // Compile Takoyaki Registrar
+    console.log("Compiling TakoyakiRegistrar...");
+    let code = null;
+    try {
+        let source = fs.readFileSync(resolve(__dirname, "../contracts/TakoyakiRegistrar.sol")).toString();
+        code = compile(source, {
+            optimize: true
+        }).filter((contract) => (contract.name === "TakoyakiRegistrar"))[0];
+    } catch (e) {
+        e.errors.forEach((error) => {
+            console.log(error);
+        });
+        throw new Error("Failed to compile TakoyakiRegistrar.sol");
+    }
+    ABI = code.interface;
+
     // Deploy ENS
     console.log("Deploying ENS...");
     provider = await ens.prepareProvider("http://localhost:8545");
@@ -26,20 +43,7 @@ before(async function() {
     let ensAddress = await provider.getNetwork().then((network) => network.ensAddress);
 
     // Fund the admin account
-    admin = ethers.Wallet.createRandom().connect(provider);
-    let fundTx = await provider.getSigner().sendTransaction({
-        to: admin.address,
-        value: ethers.utils.parseEther("0.2")
-    });
-    await fundTx.wait();
-
-    // Compile Takoyaki Registrar
-    console.log("Compiling TakoyakiRegistrar...");
-    let source = fs.readFileSync(resolve(__dirname, "../contracts/TakoyakiRegistrar.sol")).toString();
-    let code = compile(source, {
-        optimize: true
-    }).filter((contract) => (contract.name === "TakoyakiRegistrar"))[0];
-    ABI = code.interface;
+    admin = await ens.createSigner(provider);
 
     // @TODO: support this in ethers
     let defaultResolver = await provider.resolveName("resolver.eth");
@@ -50,7 +54,6 @@ before(async function() {
     let contract = await contractFactory.deploy(ensAddress, ethers.utils.namehash("takoyaki.eth"), defaultResolver, {
         gasLimit: 4300000
     });
-    contractAddress = contract.address;
     await contract.deployed();
 
     // Give takoyaki.eth to the Takoyaki Registrar (as the owner and resolver)
@@ -74,7 +77,7 @@ describe("Check Config", async function() {
 
     Object.keys(expected).forEach(function(key) {
         it(key, function() {
-            let contract = new ethers.Contract(contractAddress, ABI, provider);
+            let contract = new ethers.Contract("takoyaki.eth", ABI, provider);
             return contract.functions[key]().then((value) => {
                 let expectedValue = expected[key]();
                 if (!(expectedValue instanceof Promise)) {
@@ -90,6 +93,14 @@ describe("Check Config", async function() {
             });
         });
     });
+
+    it("ENS.owner(takoyaki.eth)", async function() {
+        let ensAddress = provider.getNetwork().then((network) => network.ensAddress);
+        let contract = new ethers.Contract(ensAddress, [ "function owner(bytes32) view returns (address)" ], provider);
+        let owner = await contract.owner(ethers.utils.namehash("takoyaki.eth"));
+        let resolvedAddress = await provider.resolveName("takoyaki.eth");
+        assert.equal(owner, resolvedAddress, "owner is not TakoyakiRegistrar");
+    });
 });
 
 describe("Admin Tasks", function() {
@@ -104,7 +115,84 @@ describe("Admin Tasks", function() {
 });
 
 describe("Name Registration (happy path)", function() {
-    describe("Register test.takoyaki.eth", function() {
+    it("can register test.takoyaki.eth (no dust wallet)", async function() {
+        let signer = await provider.createSigner();
+        let takoyaki = Takoyaki.connect(signer);
+        let salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
+
+        let tx = await takoyaki.commit("test", signer.address, salt, ethers.constants.AddressZero, 0);
+        let receipt = await tx.wait();
+        // @TODO: check logs in receipt
+
+        await provider.mineBlocks(5);
+
+        tx = await takoyaki.reveal("test", signer.address, salt);
+        receipt = await tx.wait();
+        // @TODO: check logs in receipt
+
+        let owner = await provider.resolveName("test.takoyaki.eth");
+        assert.equal(owner, signer.address, "test.takoyaki.eth owner is not buyer");
     });
+
+    it("can register test2.takoyaki.eth (with dust wallet)", async function() {
+        let takoyaki = Takoyaki.connect(provider);
+
+        let signerOwner = await provider.createSigner();
+        let signerCommit = await provider.createSigner();
+        let signerReveal = await provider.createSigner("0.0000000001");
+
+        let salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
+
+        let txs = await takoyaki.getTransactions("test2", signerOwner.address, salt, signerReveal.address);
+
+        let tx = await signerCommit.sendTransaction(txs.commit);
+        let receipt = await tx.wait();
+        // @TODO: check logs in receipt
+
+        await provider.mineBlocks(5);
+
+        tx = await signerReveal.sendTransaction(txs.reveal);
+        receipt = await tx.wait();
+        // @TODO: check logs in receipt
+
+        let owner = await provider.resolveName("test2.takoyaki.eth");
+        assert.equal(owner, signerOwner.address, "test2.takoyaki.eth owner is not buyer");
+    });
+});
+
+describe("ERC-721 Operations", function() {
+    // @TODO: Transfer, etc...
+});
+
+describe("Name Validatation", function() {
+    describe("Valid Names", function() {
+        [ "loo", "ricmoo", "ricmoo01234567890123",
+          "0yfoobar", "1xfoobar", "1Xfoobar",
+          "12345", "hello"
+        ].forEach((name) => {
+            it(name, function() {
+                let contract = new ethers.Contract("takoyaki.eth", ABI, provider);
+                contract.isValidLabel(name).then((isValid) => {
+                    assert.ok(isValid, name);
+                });
+            });
+        });
+    });
+
+    describe("Invalid Names", function() {
+        [ "lo", "r", "ricmoo012345678901234",
+          "0xfoobar", "0Xfoobar"
+        ].forEach((name) => {
+            it(name, function() {
+                let contract = new ethers.Contract("takoyaki.eth", ABI, provider);
+                contract.isValidLabel(name).then((isValid) => {
+                    assert.ok(!isValid, name);
+                });
+            });
+        });
+    });
+
+    describe("Punycode Conversion", function() {
+    })
 });
 

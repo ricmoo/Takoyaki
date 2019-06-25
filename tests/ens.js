@@ -20,6 +20,20 @@ const reverseAbi = [
     "constructor(address ens, address resolver)"
 ];
 
+// We use this to deterministically generate random wallets; but in the event
+// someone targets the wrong network they can still get their funds back
+let lastPrivateKey = ethers.utils.id(process.cwd());
+
+async function createSigner(provider, ether) {
+    lastPrivateKey = ethers.utils.keccak256(lastPrivateKey);
+    let wallet = new ethers.Wallet(lastPrivateKey, provider);
+    let fundTx = await provider.getSigner().sendTransaction({
+        to: wallet.address,
+        value: ethers.utils.parseEther(ether || "0.2")
+    });
+    await fundTx.wait();
+    return wallet;
+}
 
 async function deploy(wallet) {
     // https://etherscan.io/tx/0x40ea7c00f622a7c6699a0013a26e2399d0cd167f8565062a43eb962c6750f7db
@@ -71,7 +85,7 @@ async function deploy(wallet) {
     return ensContract.address;
 }
 
-async function register(wallet, name, owner, resolveAddress) {
+async function register(wallet, name, owner, addr) {
     let comps = name.split(".");
     if (comps.length !== 2 || comps[1] !== "eth") {
         throw new Error("expected a LABEL.eth name");
@@ -83,7 +97,7 @@ async function register(wallet, name, owner, resolveAddress) {
     let resolverContract = new ethers.Contract("resolver.eth", resolverAbi, wallet);
 
     // If setting up a target address...
-    if (resolveAddress) {
+    if (addr) {
         // Claim "${ LABEL }.eth" for us (temporary to configure)
         let tx = await ensContract.setSubnodeOwner(ethers.utils.namehash("eth"), ethers.utils.id(comps[0]), wallet.address);
         let receipt = await tx.wait();
@@ -91,7 +105,7 @@ async function register(wallet, name, owner, resolveAddress) {
         // Configure the resolver
         tx = await ensContract.setResolver(ethers.utils.namehash(name), resolverContract.address);
         receipt = await tx.wait();
-        tx = await resolverContract.setAddr(ethers.utils.namehash(name), resolverContract.address);
+        tx = await resolverContract.setAddr(ethers.utils.namehash(name), addr);
         receipt = await tx.wait();
     }
 
@@ -100,31 +114,37 @@ async function register(wallet, name, owner, resolveAddress) {
     let receipt = await tx.wait();
 }
 
+
 async function prepareProvider(url) {
     let providerBootstrap = new ethers.providers.JsonRpcProvider(url);
     let network = await providerBootstrap.getNetwork();
 
     // Create a wallet to own the ENS
-    let privateKey = "0x1234567890123456789012345678901234567890123456789012345678901234";
-    let wallet = new ethers.Wallet(privateKey, providerBootstrap);
-
-    // Give that wallet some funding to deploy contracts
-    let signer = providerBootstrap.getSigner();
-    let fundTx = await signer.sendTransaction({
-        to: wallet.address,
-        value: ethers.utils.parseEther("0.2")
-    });
-    await fundTx.wait();
+    let ensAdmin = await createSigner(providerBootstrap);
 
     // Deploy and configure ENS to the provider
-    network.ensAddress = await deploy(wallet);
+    network.ensAddress = await deploy(ensAdmin);
 
+    // Connect the admin to a network connected to our new ENS
     let provider = new ethers.providers.JsonRpcProvider(url, network);
+    ensAdmin = ensAdmin.connect(provider);
 
-    // Add a Regsiter method to the provider
-    wallet = wallet.connect(provider);
+    // Add a "regsiter" method to the provider
     provider.register = function(name, owner, resolverAddress) {
-        return register(wallet, name, owner, resolverAddress);
+        return register(ensAdmin, name, owner, resolverAddress);
+    }
+
+    // Add a "createSigner" method to the provider
+    provider.createSigner = function(ether) {
+        return createSigner(providerBootstrap, ether);
+    }
+
+    provider.mineBlocks = async function(count) {
+        if (!count) { count = 1; }
+        for (let i = 0; i < count; i++) {
+            let tx = await ensAdmin.sendTransaction({ to: ensAdmin.address, value: 0 });
+            await tx.wait();
+        }
     }
 
     return provider;
@@ -132,6 +152,7 @@ async function prepareProvider(url) {
 
 module.exports = {
     prepareProvider: prepareProvider,
+    createSigner: createSigner,
     register: register,
     deploy: deploy,
 };
