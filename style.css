@@ -240,6 +240,10 @@ div {
     transition: opacity 0.1s linear;
 }
 
+.button div {
+    white-space: nowrap;
+}
+
 .button.enabled {
     opacity: 1;
 }
