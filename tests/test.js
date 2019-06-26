@@ -39,7 +39,6 @@ before(async function() {
     // Deploy ENS
     console.log("Deploying ENS...");
     provider = await ens.prepareProvider("http://localhost:8545");
-    provider.pollingInterval = 500;
     let ensAddress = await provider.getNetwork().then((network) => network.ensAddress);
 
     // Fund the admin account

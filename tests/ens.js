@@ -117,6 +117,8 @@ async function register(wallet, name, owner, addr) {
 
 async function prepareProvider(url) {
     let providerBootstrap = new ethers.providers.JsonRpcProvider(url);
+    providerBootstrap.pollingInterval = 500;
+
     let network = await providerBootstrap.getNetwork();
 
     // Create a wallet to own the ENS
@@ -127,6 +129,7 @@ async function prepareProvider(url) {
 
     // Connect the admin to a network connected to our new ENS
     let provider = new ethers.providers.JsonRpcProvider(url, network);
+    provider.pollingInterval = 500;
     ensAdmin = ensAdmin.connect(provider);
 
     // Add a "regsiter" method to the provider
