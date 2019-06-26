@@ -113,7 +113,7 @@
                     let tmp = document.getElementById(id);
                     if (!tmp) {
                         let label = "foobar" + x + " " + y;
-                        let traits = Takoyaki.randomTraits();
+                        let traits = Takoyaki.getTraits();
                         tmp = createTakoyakiTile(id);
                         SetTile[id](label, traits);
                     }
@@ -133,7 +133,7 @@
             }
             let tiles = Array.prototype.filter.call(Background.children, isVisible);
             let tile = tiles[parseInt(Math.random() * tiles.length)];
-            SetTile[tile.id]("ff" + (new Date()).getTime(), Takoyaki.randomTraits());
+            SetTile[tile.id]("ff" + (new Date()).getTime(), Takoyaki.getTraits());
         }
         setInterval(highlight, 12000);
     })();
