@@ -1,10 +1,10 @@
 {
   "name": "takoyaki",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "The Takoyaki NFT library.",
   "main": "index.js",
   "browser": {
-      "ethers": "./ethers-browser.js"
+    "ethers": "./ethers-browser.js"
   },
   "scripts": {
     "dist": "node ./scripts/generate.js && browserify ./index.js --standalone Takoyaki --outfile ./dist/takoyaki.js",
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "ethers": ">=5.0.0-beta.141",
+    "inherits": "^2.0.4",
     "punycode": "2.1.1"
   }
 }
