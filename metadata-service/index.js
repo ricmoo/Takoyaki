@@ -28,6 +28,7 @@ const Provider = (function() {
     return ethers.getDefaultProvider(process.env.NETWORK || "ropsten");
 })();
 
+const TakoyakiContract = takoyaki.connect(Provider);
 
 const ContentTypes = {
     HTML: "text/html; charset=utf-8",
@@ -74,32 +75,26 @@ function redirect(response, location) {
 }
 
 async function getJson(tokenId) {
-    let info = await ethers.utils.resolveProperties({
-        name: "foobar",
-//        address: Provider.resolveName()
-    });
-
-    let name = Buffer.from("44GK44Gv44GE44GK44GU44GW44GE44G+44GZ", "base64").toString(); //"foobar";
-    let punycodeName = punycode.toASCII(name + ".takoyaki.cafe");
+    let traits = await TakoyakiContract.getTraits("0x" + tokenId);
 
     // @TODO: detect any Japanese character and use a Japanese description
 
-    return {
-        name: name,
-        description: `Hello! I am a Takoyaki NFT. My name is ${ JSON.stringify(name) }. I like coffee.`,
-        image: `https://takoyaki.nftmd.com/svg/${ tokenId }/`,
-        url: `https://${ punycodeName }/`,
+    traits.genes.upkeepFee = ethers.utils.formatEther(traits.genes.upkeepFee)
 
-        takoyakiSeeds: [ ],
-        takoyakiInfo: {
-            owner: "0x1234",
-            address: "0x1234",
-            expires: 1234,
-        },
-        takoyakiTraits: {
-            version: "0.0.1",
-            eyes: "eyes-6"
-        }
+    let parts = [ "1", Buffer.from(traits.genes.name).toString("hex"), traits.genes.salt.substring(2) ];
+    traits.genes.seeds.forEach((seed) => {
+        if (!seed) { return; }
+        parts.push(seed.substring(2));
+    });
+    let imageUrl = "https:/" + "/takoyaki.nftmd.com/svg/" + parts.join("_");
+
+    return {
+        name: traits.genes.name,
+        description: `Hello! I am a Takoyaki. My name is ${ JSON.stringify(traits.genes.name) }.`,
+        image: imageUrl,
+        url: takoyaki.labelToUrl(traits.genes.name),
+
+        takoyakiTraits: traits,
     };
 }
 
@@ -161,65 +156,66 @@ const server = http.createServer((request, response) => {
         let match = null;
 
         // Redirect non-directory paths to the directory path
-        if (match = pathname.match(/^\/(json|svg|png)\/(random|[0-9a-f]{64})$/)) {
+        if (match = pathname.match(/^\/(json|svg|png)\/(random|[0-9a-f_]+)$/)) {
             redirect(response, `/${ match[1] }/${ match[2] }/`);
 
-        } else if (match = pathname.match(/^\/(svg|png)\/(random|[0-9a-f]{64})\/$/)) {
+        } else if (match = pathname.match(/^\/(svg|png)\/(random|[0-9a-f_]+)\/$/)) {
             let kind = match[1];
-            let tokenId = match[2];
+            let parts = match[2].split("_");
 
             let filename = null;
-            let traitsPromise = null;
-            if (tokenId === "random") {
+            let traits = null;
+            if (parts.length === 1 && parts[0] === "random") {
                 filename = "random";
-                let traits = takoyaki.randomTraits();
-                takoyaki.randomTraits()
-                traitsPromise = Promise.resolve(traits);
+                traits =  takoyaki.getTraits();
             } else {
-                filename = tokenId.substring(0, 10);
-                traitsPromise = takoyaki.getTraits(Provider, "0x" + tokenId);
+                parts = parts.slice(1);
+                traits = takoyaki.getTraits({
+                    name: Buffer.from(parts[0], "hex").toString(),
+                    salt: ("0x" + parts[1]),
+                    seeds: parts.slice(2).map((seed) => ("0x" + seed))
+                });
+                filename = ethers.utils.id(traits.genes.name).substring(0, 10);
             }
 
-            traitsPromise.then((traits) => {
-                let svg = takoyaki.getSvg(traits);
+            let svg = takoyaki.getSvg(traits);
 
-                if (kind === "svg") {
-                    send(svg, ContentTypes.SVG, {
-                        "Content-Disposition": `inline; filename="takoyaki-${ filename }.svg"`
-                    });
+            if (kind === "svg") {
+                send(svg, ContentTypes.SVG, {
+                    "Content-Disposition": `inline; filename="takoyaki-${ filename }.svg"`
+                });
 
-                } else if (kind === "png") {
-                    let query = queryParse(url.query);
+            } else if (kind === "png") {
+                let query = queryParse(url.query);
 
-                    // Get the dimensions for the image
-                    // - Default: 256x256
-                    // - Must be a positive integer
-                    // - Must be <= 1024x1024
-                    let options = { height: 256, width: 256 };
-                    try {
-                        if (query.size != null) {
-                            if (!query.size.match(/^[0-9]+$/)) {
-                                throw new Error("invalid size: " + query.size);
-                            }
-                            let size = parseInt(query.size);
-                            if (size > 1024) { size = 1024; }
-                            options.height = options.width = size;
+                // Get the dimensions for the image
+                // - Default: 256x256
+                // - Must be a positive integer
+                // - Must be <= 1024x1024
+                let options = { height: 256, width: 256 };
+                try {
+                    if (query.size != null) {
+                        if (!query.size.match(/^[0-9]+$/)) {
+                            throw new Error("invalid size: " + query.size);
                         }
-                    } catch (error) {
-                        console.log(error);
-                        return sendError(400, "Bad PNG Dimension");
+                        let size = parseInt(query.size);
+                        if (size > 1024) { size = 1024; }
+                        options.height = options.width = size;
                     }
-
-                    getConverter().convert(svg, options).then((png) => {
-                        send(png, ContentTypes.PNG, {
-                            "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
-                        });
-                    }, (error) => {
-                        console.log(error);
-                        sendError(500, "Server Error");
-                    });
+                } catch (error) {
+                    console.log(error);
+                    return sendError(400, "Bad PNG Dimension");
                 }
-            });
+
+                getConverter().convert(svg, options).then((png) => {
+                    send(png, ContentTypes.PNG, {
+                        "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+                    });
+                }, (error) => {
+                    console.log(error);
+                    sendError(500, "Server Error");
+                });
+            }
 
         } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
             getJson(match[1]).then((json) => {
