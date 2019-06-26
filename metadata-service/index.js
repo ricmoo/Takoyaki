@@ -6,10 +6,10 @@ const queryParse = require('querystring').parse;
 const { resolve } = require("path");
 const urlParse = require('url').parse;
 
-const takoyaki = require("takoyaki");
-
 //console.log("Warning: Using local debug takoyaki library...");
 //const takoyaki = require("../lib");
+
+const takoyaki = require("takoyaki");
 
 const { createConverter } = require("convert-svg-to-png");
 const ethers = require("ethers");
