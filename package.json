@@ -24,8 +24,10 @@
   },
   "homepage": "https://github.com/ricmoo/Takoyaki#readme",
   "dependencies": {
+    "ethers": "^5.0.0-beta.138"
+  },
+  "devDependencies": {
     "@ethersproject/cli": "^5.0.0-beta.129",
-    "ethers": "^5.0.0-beta.138",
     "meeseeks-cli": "0.0.5",
     "mocha": "^6.1.4"
   }
