@@ -277,7 +277,13 @@
     }
 
 
+    const pendingHints = { };
+
     async function register(label) {
+        const tokenId = ethers.utils.id(label);
+        if (!pendingHints[tokenId]) { pendingHints[tokenId] = { }; }
+        let hints = pendingHints[tokenId];
+
         const provider = await providerPromise;
 
         // This is a temporary wallet we will use to issue the reveal. It doesn't
@@ -301,35 +307,61 @@
         let signer = await getSigner();
         let owner = await signer.getAddress();
 
-        let contract = Takoyaki.connect(signer);
+        let takoyaki = Takoyaki.connect(signer);
 
         // Use a deterministic salt, so we can recalculate the same value as
         // long as we have the dust wallet
-        let salt = ethers.utils.keccak256(await dustWallet.signMessage(label));
+        let salt = ethers.utils.keccak256(await dustWallet.signMessage(label + "foo"));
+        hints.salt = salt;
 
-        let revealTx = await contract.connect(dustWallet).populateTransaction.reveal(label, owner, salt);
+        let txs = await takoyaki.getTransactions(label, owner, salt, dustWallet.address);
+        console.log(txs);
 
-        let tx = await contract.commit(label, owner, salt, dustWallet.address, ethers.utils.parseEther("0.01"));
-        console.log(tx);
+        let tx = await signer.sendTransaction(txs.commit);
+
         let receipt = await tx.wait();
-        console.log(receipt);
-
-        let hints = {
-            commitBlock: receipt.blockNumber,
-            salt: salt,
-            name: label
-        };
-        //watch(signer.provider, hints);
+        hints.commitBlock = receipt.blockNumber;
+        console.log("COMMITED", receipt.blockNumber);
 
         await tx.wait(4);
         console.log("sending reveal");
 
-        tx = await contract.connect(dustWallet).reveal(label, owner, salt);
-        console.log(tx);
-        receipt = tx.wait();
-        console.log(receipt);
+        tx = await dustWallet.sendTransaction(txs.reveal);
+        receipt = await tx.wait();
+        hints.revealBlock = receipt.blockNumber;
 
         return true;
+    }
+
+    function updateAddress(provider, tokenId) {
+        let nodehash = ethers.utils.keccak256(ethers.utils.concat([
+            ethers.utils.namehash("takoyaki.eth"),
+            tokenId
+        ]));
+
+        // Get the address (if any) and update the UI
+        provider.call({
+            to: provider.getNetwork().then((n) => n.ensAddress),
+            data: ("0x0178b8bf" + nodehash.substring(2))
+        }).then((data) => {
+            let resolverAddr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
+            if (resolverAddr === ethers.constants.AddressZero) { return null; }
+
+            return provider.call({
+                to: ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12)),
+                data: ("0x3b3b57de" + nodehash.slice(2))
+            }).then((data) => {
+                let addr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
+                document.getElementById("address").textContent = (
+                    addr.substring(0, 12) + " " +
+                    addr.substring(12, 22) + "      \n        " +
+                    addr.substring(22, 32) + " " +
+                    addr.substring(32, 42) + "    "
+                );
+                document.getElementById("icon-copy").classList.remove("hidden");
+                return addr;
+            });
+        });
     }
 
     // Card view of a single label
@@ -344,72 +376,41 @@
         document.title = (label + " \u2013 Takoyaki!!");
 
         let tokenId = ethers.utils.id(label);
+        if (!pendingHints[tokenId]) { pendingHints[tokenId] = { }; }
+        let hints = pendingHints[tokenId];
+        hints.name = label;
 
         providerPromise.then((provider) => {
-
-            let nodehash = ethers.utils.keccak256(ethers.utils.concat([
-                ethers.utils.namehash("takoyaki.eth"),
-                tokenId
-            ]));
-
-            provider.call({
-                to: provider.getNetwork().then((n) => n.ensAddress),
-                data: ("0x0178b8bf" + nodehash.substring(2))
-            }).then((data) => {
-                let resolverAddr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
-                if (resolverAddr === ethers.constants.AddressZero) { return null; }
-
-                return provider.call({
-                    to: ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12)),
-                    data: ("0x3b3b57de" + nodehash.slice(2))
-                }).then((data) => {
-                    let addr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
-                    document.getElementById("address").textContent = (
-                        addr.substring(0, 12) + " " +
-                        addr.substring(12, 22) + "      \n        " +
-                        addr.substring(22, 32) + " " +
-                        addr.substring(32, 42) + "    "
-                    );
-                    document.getElementById("icon-copy").classList.remove("hidden");
-                    return addr;
-                });
-            });
-
+            updateAddress(provider, tokenId);
 
             let contract = Takoyaki.connect(provider);
             contract.getTraits(tokenId).then((traits) => {
-                console.log("TT", traits);
 
                 let traitsDraw = ethers.utils.shallowCopy(traits);
                 traitsDraw.state = 0;
                 draw(traitsDraw);
 
                 function drawNext() {
-                    console.log("DRAWNEXT", traitsDraw);
 
                     if (traitsDraw.state < traits.state) {
-                        console.log("SCHED", traits.state);
                         traitsDraw.state++;
                         draw(traitsDraw);
                         setTimeout(drawNext, 200);
 
                     } else if (traits.state < 5) {
-                        if (traits.genes.expires < (((new Date()).getTime() / 1000 ) - (30 * 24 * 60 * 60))) {
+                        if (traits.genes.status === "available") {
                             AdoptButton.classList.add("enabled");
                         }
 
                         function onBlock(blockNumber) {
-                            console.log("Block", blockNumber);
-                            let hints = {
-                                blockNumber: blockNumber
-                            };
+                            hints.blockNumber = blockNumber
 
                             contract.getTraits(tokenId, hints).then((traits) => {
-                                console.log("new", traits, arguments);
                                 draw(traits);
 
                                 // Done; Unsubscribe!
                                 if (traits.state === 5) {
+                                    updateAddress(provider, tokenId);
                                     provider.off("block", onBlock);
                                 }
                             });
@@ -456,10 +457,11 @@
     };
 
     document.getElementById("button-hatch").onclick = function() {
+        document.getElementById("about").classList.add("hidden");
         AdoptButton.classList.remove("enabled");
         AdoptButton.classList.add("running");
         register(label).then(() => {
-            console.log("done?");
+            //console.log("done?");
         }, (error) => {
             console.log(error);
             AdoptButton.classList.remove("running");
