@@ -6,6 +6,7 @@ const ensAbi = [
     "function setOwner(bytes32 node, address owner) external @500000",
     "function setSubnodeOwner(bytes32 node, bytes32 label, address owner) external @500000",
     "function setResolver(bytes32 node, address resolver) external @500000",
+    "function setTTL(bytes32 node, uint64 ttl) external",
     "function owner(bytes32 node) external view returns (address)",
     "function resolver(bytes32 node) external view returns (address)"
 ];
@@ -153,9 +154,33 @@ async function prepareProvider(url) {
     return provider;
 }
 
+async function getOwner(provider, name) {
+    const ensAddress = await provider.getNetwork().then((network) => network.ensAddress);
+    const contract = new ethers.Contract(ensAddress, ensAbi, provider);
+    const owner = await contract.owner(ethers.utils.namehash(name));
+    return owner;
+}
+
+async function setOwner(signer, name, newOwnerAddress) {
+    const ensAddress = await signer.provider.getNetwork().then((network) => network.ensAddress);
+    const ensContract = new ethers.Contract(ensAddress, ensAbi, signer);
+    const tx = await ensContract.setOwner(ethers.utils.namehash(name), newOwnerAddress);
+    return tx.wait();
+}
+
+async function setTTL(signer, name, ttl) {
+    const ensAddress = await signer.provider.getNetwork().then((network) => network.ensAddress);
+    const ensContract = new ethers.Contract(ensAddress, ensAbi, signer);
+    const tx = await ensContract.setTTL(ethers.utils.namehash(name), ttl);
+    return tx.wait();
+}
+
 module.exports = {
     prepareProvider: prepareProvider,
     createSigner: createSigner,
     register: register,
     deploy: deploy,
+    getOwner,
+    setOwner,
+    setTTL
 };
