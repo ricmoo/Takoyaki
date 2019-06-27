@@ -7,7 +7,7 @@
     "ethers": "./ethers-browser.js"
   },
   "scripts": {
-    "dist": "node ./scripts/generate.js && browserify ./index.js --standalone Takoyaki --outfile ./dist/takoyaki.js",
+    "dist": "node ./scripts/generate.js && browserify ./index.js --standalone Takoyaki --outfile ./dist/takoyaki.js && uglifyjs ./dist/takoyaki.js --output ./dist/takoyaki.min.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

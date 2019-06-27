@@ -4,9 +4,10 @@
   "description": "ENS Registrar, management website and metadata website for takoyaki.eth subnames.",
   "scripts": {
     "deploy-metadata-service": "git subtree push --prefix metadata-service heroku master",
-    "deploy-metadata-serviec-force": "git push heroku `git subtree split --prefix metadata-service  master`:master --force",
+    "deploy-metadata-service-force": "git push heroku `git subtree split --prefix metadata-service  master`:master --force",
     "setup-heroku": "heroku git:remote -a takoyaki-meta",
     "flatten": "meeseeks flatten index.html > dist/index.html",
+    "dist": "./build.sh",
     "test": "mocha --timeout 600000 tests/test"
   },
   "keywords": [
@@ -24,7 +25,7 @@
   },
   "homepage": "https://github.com/ricmoo/Takoyaki#readme",
   "dependencies": {
-    "ethers": "^5.0.0-beta.138"
+    "ethers": "^5.0.0-beta.141"
   },
   "devDependencies": {
     "@ethersproject/cli": "^5.0.0-beta.129",
