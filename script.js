@@ -1,5 +1,4 @@
 (function () {
-
     // Setup the background. Center tiles of Takoyaki across the entire
     // background, highlighting them randomly
     (function () {
@@ -373,7 +372,7 @@
         document.getElementById("label").textContent = label;
         document.getElementById("populate-label").textContent = label;
 
-        document.title = (label + " \u2013 Takoyaki!!");
+        document.title = (label + " || Takoyaki!!");
 
         let tokenId = ethers.utils.id(label);
         if (!pendingHints[tokenId]) { pendingHints[tokenId] = { }; }
