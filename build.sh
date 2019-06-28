@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Create the flattened CSS
-npx meeseeks flatten style.css > ./dist/style.css
+python -c "import base64; spinner = base64.b64encode(file('./spinner.gif').read()); print file('./style.css').read().replace('./spinner.gif', 'data:image/gif;base64,' + spinner)" > ./dist/style.css
 
 # Copy minified scripts
 cp ./node_modules/ethers/dist/ethers.min.js ./dist/ethers.js
