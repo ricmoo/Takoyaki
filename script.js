@@ -11,6 +11,8 @@
         const SetTile = { };
         const LastTile = null;
 
+        let lastHighlight = -1;
+
         // Returns true if the element is not covered by the Card/Search
         // and not too far over the edge
         function isVisible(el) {
@@ -111,10 +113,10 @@
                     let id = "tile_" + i + "_" + j;
                     let tmp = document.getElementById(id);
                     if (!tmp) {
-                        let label = "foobar" + x + " " + y;
-                        let traits = Takoyaki.getTraits();
+                        lastHighlight = (lastHighlight + 1) % TakoyakiHistory.length;
+                        let genes = TakoyakiHistory[lastHighlight];
                         tmp = createTakoyakiTile(id);
-                        SetTile[id](label, traits);
+                        SetTile[id](genes.name, Takoyaki.getTraits(genes));
                     }
                     tmp.style.transform = ("translate(" + (ox + x) + "px, " + (oy + y) + "px)");
                     j++;
@@ -132,7 +134,10 @@
             }
             let tiles = Array.prototype.filter.call(Background.children, isVisible);
             let tile = tiles[parseInt(Math.random() * tiles.length)];
-            SetTile[tile.id]("ff" + (new Date()).getTime(), Takoyaki.getTraits());
+
+            lastHighlight = (lastHighlight + 1) % TakoyakiHistory.length;
+            let genes = TakoyakiHistory[lastHighlight];
+            SetTile[tile.id](genes.name, Takoyaki.getTraits(genes));
         }
         setInterval(highlight, 12000);
     })();
@@ -380,7 +385,6 @@
         hints.name = label;
 
         providerPromise.then((provider) => {
-            updateAddress(provider, tokenId);
 
             let contract = Takoyaki.connect(provider);
             contract.getTraits(tokenId).then((traits) => {

@@ -118,11 +118,13 @@ div {
 }
 
 #background .tile span {
-    bottom: 10px;
+    bottom: 6px;
     color: #888;
     display: block;
     font-family: monospace;
     font-size: 16px;
+    height: 20px;
+    line-heght: 20px;
     pointer-events: none;
     position: absolute;
     text-align: center;

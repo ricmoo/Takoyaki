@@ -12,3 +12,5 @@ npx uglifyjs ./script.js --output ./dist/script.js
 cp ./index.html ./dist/index.html
 sed -E -e 's/data:prod="-" ([a-z]+)="([^"]+)\//\1="https:\/\/takoyaki.cafe\//g' -i .tmp ./dist/index.html
 rm ./dist/index.html.tmp
+
+cp ./history.js ./dist/history.js
