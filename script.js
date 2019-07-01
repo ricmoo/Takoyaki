@@ -442,13 +442,34 @@
         }
 
         input.oninput = function () {
-            button.classList[input.value.length ? "add" : "remove"]("enabled")
+            let length = ethers.utils.toUtf8Bytes(input.value).length;
+            let error = null;
+            if (length === 0) {
+                error = " ";
+            } else if (input.value.toLowerCase().substring(0, 2) === "0x") {
+                error = "Begins with \"0x\".";
+            } else if (length < 3) {
+                error = "Too short.";
+            } else if (length > 20) {
+                error = "Too long.";
+            }
+
+            if (error) {
+                button.classList.remove("enabled");
+            } else {
+                button.classList.add("enabled");
+            }
+
+            document.getElementById("search-warning").textContent = error;
+            input.value = input.value.toLowerCase();
         }
 
         button.onclick = function () {
             if (!button.classList.contains("enabled")) { return; }
             location.href = Takoyaki.labelToUrl(input.value, local);
         }
+
+        input.focus();
     }
 
     AdoptButton.onclick = function() {
@@ -467,6 +488,7 @@
             //console.log("done?");
         }, (error) => {
             console.log(error);
+            alert(error.message);
             AdoptButton.classList.remove("running");
             AdoptButton.classList.add("enabled");
         });
