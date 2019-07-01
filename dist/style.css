@@ -124,11 +124,14 @@ div {
     font-family: monospace;
     font-size: 16px;
     height: 20px;
+    left: 0;
     line-heght: 20px;
+    overflow: hidden;
     pointer-events: none;
     position: absolute;
     text-align: center;
-    left: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     width: 160px;
 }
 
@@ -161,6 +164,21 @@ div {
     width: 100%;
 }
 
+#search-warning {
+    color: #f88;
+    height: 40px;
+    font-family: sans-serif;
+    font-style: italic;
+    line-height: 40px;
+    padding-right: 30px;
+    position: absolute;
+    pointer-events: none;
+    text-align: right;
+    right: 0;
+    white-space: nowrap;
+    dddwidth: 100px;
+}
+
 #card {
     background: #fff;
     border: 5px solid #333;
@@ -181,6 +199,9 @@ div {
     font-size: 50px;
     font-family: monospace;
     text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .subtitle {
@@ -229,10 +250,21 @@ div {
     display: none;
 }
 
+#button-close {
+    color: #00f;
+    text-decoration: none;
+}
+
+#button-close:hover {
+    color: #008;
+    font-weight: bold;
+}
+
 .button {
-    border: 2px solid #333;
+    border: 2px solid #1c87be;
+    background: #ef91f2;
     border-radius: 6px;
-    color: #666;
+    color: #fff;
     cursor: pointer;
     font-family: sans-serif;
     font-weight: bold;
@@ -250,12 +282,15 @@ div {
 
 .button.enabled {
     opacity: 1;
+    transition: opacity 0.1s linear, transform 0.2s ease-out;
 }
 
 .button.enabled:hover {
-    background-color: #444;
-    border: 2px solid #aaa;
-    color: #fff;
+    background-color: #befcff;
+    border: 2px solid #b24ab5;
+    box-shadow: 3px 3px 10px hsl(298, 50%, 70%);
+    color: #ef91f2;
+    transform: translate(-50%, 0) scale(1.1);
 }
 
 .button.running {
