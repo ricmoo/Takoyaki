@@ -321,7 +321,13 @@
         let txs = await takoyaki.getTransactions(label, owner, salt, dustWallet.address);
         console.log(txs);
 
-        let tx = await signer.sendTransaction(txs.commit);
+        let tx = null;
+        try {
+            tx = await signer.sendTransaction(txs.commit);
+        } catch (error) {
+            console.log(error);
+            throw new Error("Cancelled Transaction.");
+        }
 
         let receipt = await tx.wait();
         hints.commitBlock = receipt.blockNumber;
