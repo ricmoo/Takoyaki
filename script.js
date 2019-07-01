@@ -465,7 +465,6 @@
             }
 
             document.getElementById("search-warning").textContent = error;
-            input.value = input.value.toLowerCase();
         }
 
         button.onclick = function () {
