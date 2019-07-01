@@ -400,6 +400,10 @@
                         draw(traitsDraw);
                         setTimeout(drawNext, 200);
 
+                        if (traitsDraw.state === 5) {
+                            updateAddress(provider, tokenId);
+                        }
+
                     } else if (traits.state < 5) {
                         if (traits.genes.status === "available") {
                             AdoptButton.classList.add("enabled");
