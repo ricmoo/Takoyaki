@@ -161,6 +161,7 @@ div {
     font-family: monospace;
     outline: none;
     text-align: center;
+    text-transform: lowercase;
     width: 100%;
 }
 
