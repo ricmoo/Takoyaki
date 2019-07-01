@@ -301,11 +301,11 @@ div {
 }
 
 .button .emphasis {
-    color: #000;
+    color: #befcff;
 }
 
 .button.enabled:hover .emphasis {
-    color: #fff;
+    color: #b24ab5;
 }
 
 .button .small {
