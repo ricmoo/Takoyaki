@@ -250,6 +250,16 @@ div {
     display: none;
 }
 
+#button-close {
+    color: #00f;
+    text-decoration: none;
+}
+
+#button-close:hover {
+    color: #008;
+    font-weight: bold;
+}
+
 .button {
     border: 2px solid #1c87be;
     background: #ef91f2;
