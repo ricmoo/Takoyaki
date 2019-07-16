@@ -86,7 +86,7 @@ async function getJson(tokenId) {
         if (!seed) { return; }
         parts.push(seed.substring(2));
     });
-    let imageUrl = "https:/" + "/takoyaki.nftmd.com/svg/" + parts.join("_");
+    let imageUrl = "https:/" + "/takoyaki.nftmd.com/png/" + parts.join("_");
 
     return {
         name: traits.genes.name,
