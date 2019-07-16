@@ -218,19 +218,18 @@ contract TakoyakiRegistrar {
         return _fee;
     }
 
-    // A valid label is measured in bytes (not characters). This allows emoji and
-    // non-ASCII names to be less than 3 glyphs, but ensures ASCII names are at
-    // least 3 characters long. Names may not begin with a "0x" prefix (in either
-    // lowercase or uppercase). Otherwise, valid UTF-8 data is expected to be
-    // verified by the client.
+    // A label is measured in bytes (not characters). A label must not begin
+    // with a "0x" prefix (in either lowercase or uppercase).
+    // Otherwise, valid UTF-8 data and namehash normalization (i.e. lowercase pnly)
+    // is expected to be verified by the client.
     function isValidLabel(string memory label) public pure returns (bool) {
         bytes memory data = bytes(label);
 
-        // Names MUST be between 3 bytes and 20 bytes (inclusive)
-        if (data.length < 3 || data.length > 20) { return false; }
+        // Names MUST be between 1 byte and 20 bytes (inclusive)
+        if (data.length < 1 || data.length > 20) { return false; }
 
         // Names MUST NOT start with "0x" or "0X"
-        if (data[0] == 0x30 && (data[1] | 0x20) == 0x78) {
+        if (data.length >= 2 && data[0] == 0x30 && (data[1] | 0x20) == 0x78) {
             return false;
         }
 
@@ -345,7 +344,7 @@ contract TakoyakiRegistrar {
     }
 
     // Not really necessary, but maybe someone wants to keep totalSupply correct
-    // or really hates a specific takoyaki
+    // or really hates a specific Takoyaki
     function destroy(uint256 tokenId) external {
         Takoyaki memory takoyaki = _takoyaki[tokenId];
         require(takoyaki.owner != address(0));
@@ -361,6 +360,20 @@ contract TakoyakiRegistrar {
         emit Transfer(takoyaki.owner, address(0), tokenId);
     }
 
+    /**
+     *  Allow a Takoyaki owner to lock-in the current upkeep fee, if it
+     *  is lower than their current upkeep fee.
+     *
+     *  Anyone may call this.
+     */
+    function syncUpkeepFee(uint256 tokenid) external {
+        Takoyaki storage takoyaki = _takoyaki[tokenId];
+        require(takoyaki.owner != address(0) && takoyaki.expires > now);
+
+        // If the fee has decreased, set this Takoyyaki as the new lower fee
+        if (_fee < takoyaki.upkeepFee) { takoyaki.upkeepFee = _fee; }
+    }
+
 
     // A Takoyaki has an upkeep cost. The upkeep will never be more than the
     // fee originally paid for a takoyaki, but if the fee has decreased, the
@@ -368,6 +381,7 @@ contract TakoyakiRegistrar {
     function renew(uint256 tokenId) external payable {
 
         Takoyaki storage takoyaki = _takoyaki[tokenId];
+        require(takoyaki.owner != address(0));
 
         // If the fee has decreased, set this Takoyyaki as the new lower fee
         if (_fee < takoyaki.upkeepFee) { takoyaki.upkeepFee = _fee; }
@@ -389,7 +403,7 @@ contract TakoyakiRegistrar {
     // Reset the registrant as the controller
     function reclaim(uint256 tokenId, address owner) external {
         Takoyaki memory takoyaki = _takoyaki[tokenId];
-        require(msg.sender == takoyaki.owner);
+        require(msg.sender == takoyaki.owner && takoyaki.expires > now);
 
         _ens.setSubnodeOwner(_nodehash, bytes32(tokenId), owner);
     }
