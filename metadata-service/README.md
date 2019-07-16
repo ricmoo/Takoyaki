@@ -17,19 +17,33 @@ Generates the JSON description of the *TOKEN_ID* Takoyaki Token.
 
 **[https://takoyaki.nftmd.com/svg/ENCODED_TRAITS](https://takoyaki.nftmd.com/svg/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
-Generates the SVG of the *TOKEN_ID* Takoyaki Token. The *TOKEN_ID* should
-be either a 64 nibble hex string (**no** `0x` prefix), or the string `random`
-to generate a random image.
+Generates the SVG of the Takoyaki Token with the *ENCODED_TRAITS*. See below
+for the encoding. The string `random` may be used to generate a random
+Takoyaki image.
 
 
 **[https://takoyaki.nftmd.com/png/ENCODED_TRAITS?size=:SIZE](https://takoyaki.nftmd.com/png/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
-Generates the image of the *TOKEN_ID* Takoyaki Token, as a *SIZE* x *SIZE*
-pixel PNG. The *TOKEN_ID* should be either a 64 nibble hex string (**no**
-`0x` prefix), or the string `random` to generate a random image.
+Rasterizes the above SVG into a PNG for a Takoyaki Token with the
+*ENCODED_TRAITS* as a *SIZE* x *SIZE* pixel PNG. The string `random`
+may be used to generate a random Takoyaki image.
 
 If the size query parameter is ommitted, a default size of 256
 will be used. The maximum size is 1024x1024 pixels.
+
+
+Encoding Traits
+---------------
+
+The traits are an underscore (i.e. `_`) delimited set of
+hex strings. The fields are:
+
+- **version:** which currently only supports `1`, which indicates the following fields:
+- **name:** which is the hex encoded UTF-8 string label
+- **salt:** which is the 32 byte (64 nibble) salt used during commit
+- **seed0** through **seed4:** each of these 5 seeds is a 6 byte (12 nibble) seed based on the block hashes following certain blocks after the commit and reveal
+
+Future versions will allow different parameters.
 
 
 Managing
