@@ -11,147 +11,174 @@ needed to create client side SVG files for a given set of traits
 as well as the algorithms required to compute the traits from the
 on-chain data for a given Takoyaki.
 
+Installing
+----------
+
+```
+/home/ricmoo/my-project> npm install --save takoyaki
+```
+
+```javascript
+const Takoyaki = require("takoyaki");
+```
 
 API
 ---
 
 ### Rendering and Display Logic
 
-**getSvg ( traits [ , backgroundColor ] )** *=> string*
+**Takoyaki.getSvg ( traits [ , backgroundColor ] )** *=> string*
 
 Create an SVG string for the appearance `traits` and optionally a
 `backgroundColor` (100% transparent, by default).
 
-**getLabelColor ( label [ , saturation [ , luminence ] ] )** *=> string*
+**Takoyaki.getLabelColor ( label [ , saturation = 90 [ , luminence = 90 ] ] )** *=> string*
 
-Create an `hsl(hue, saturation, luminence)` color for the given label.
+Create an `hsl(hue, saturation, luminence)` color for the given label, which can be
+used for the background (sat = 90, lum = 90), or adding lighter/darker features,
+such as borders or text.
+
+**Takoyaki.SVG** *=> string*
+
+The raw SVG that is processed to generate individual Takoyaki.
 
 
 ### Traits
 
-**getTraits ( provider, tokenId )** *=> Traits*
+**Takoyaki.getTraits ( [ genes ] )** *=> Traits*
 
-Look up the traits for a given `tokenId` on the network provided by `provider`.
-
-**randomTraits ( )** *=> Traits*
-
-Create a random set of traits, with the state set to 5 (fully revealed)
+Compute the traits for a given set of genes, which should include a `salt` and
+`seeds`, which is an Array of up to 5 bytes6. If genes is omitted, a random set
+of traits is returned.
 
 
-### Connecting to the Blockchain
+### URLs and Labels
 
-**connect ( providerOrProvider )** *=> TakoyakiContract*
+**Takoyaki.urlToLabel ( hostname )** *=> string*
+
+Converts a hostname into the label, accounting for [Punycode](https://en.wikipedia.org/wiki/Punycode),
+so international and emoji names can be used.
+
+**Takoyaki.labelToUrl ( label )** *=> string*
+
+Converts a label into the Punycode hostname.
+
+
+### Takoyaki Contract
+
+**Takoyaki.connect ( providerOrProvider )** *=> TakoyakiContract*
 
 Return a Contract instance to interact with the blockchain values for Takoyaki
 Tokens.
 
+**contract.getTransactions ( label , owner , salt [ , prefundRevealer ] )** *=> Object*
 
-### Configuration
+Returns an object with two transaction Objects, `commit` and `reveal`, which can be
+signed and sent to the network to commit and reveal. You MUST have a delay of at least
+4 blocks between commit and reveal, and no more than 5,760 blocks.
 
-Most of thse are not necessary, but may be useful to introspect the current
-configuration of the Takoyaki Registrar Contract on this chain.
+This is the recommended method of using this library.
 
-**TakoyakiContract.prototype.admin ( )**
-**TakoyakiContract.prototype.ens ( )**
-**TakoyakiContract.prototype.nodehash ( )**
-**TakoyakiContract.prototype.defaultResolver ( )**
+**contract.getTraits ( tokenId [ , hints ] )** *=> Promise<Traits>*
 
+Returns the traits for a given Takoyaki. The hints can be used to save network
+calls and to indicate information which is not yet available, such as the `salt`
+prior to the reveal.
 
-### Token Information
-
-**TakoyakiContract.prototype.tokenURI ( tokenId )** *=> Promise<string>*
+**contract.tokenURI ( tokenId )** *=> Promise<string>*
 
 Returns the URL of a JSON description of the token
 
-**TakoyakiContract.prototype.totalSupply ( )**
+**contract.totalSupply ( )** *=> Promise<BigNumber>*
 
 Returns the total number of Takoyaki currently issued. This may be higher than
 the actual number, since the total supply is only decremented for expired
 Takoyaki Tokens when `destroy` is called them.
 
-**TakoyakiContract.prototype.symbol ( )**
+**contract.symbol**
 
 Returns "TAKO"
 
-**TakoyakiContract.prototype.name ( )**
+**contract.name**
 
 Returns "Takoyaki"
 
-**TakoyakiContract.prototype.fee ( )** *=> BigNumber*
+**contract.fee ( )** *=> Promise<BigNumber>*
+
+Returns the fee for a Takoyaki.
+
+**contract.isValidLabel ( label )** *=> boolean*
+
+Returns true if and only if the label is valid.
+
+**contract.getTakoyaki ( tokenId )** *=> Promise<Object>*
 
 TODO
 
-**TakoyakiContract.prototype.isValidLabel ( label )** *=> boolean*
+**contract.commit ( blindedCommit , prefundedRevealer , prefundAmount )** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.commit ( blindedCommit , prefundedRevealer , prefundAmount )** *=> TransactionResponse*
+**contract.cancelCommit ( blindedCommit ** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.cancelCommit ( blindedCommit ** *=> TransactionResponse*
+**contract.reveal ( label , owner , salt )** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.reveal ( label , owner , salt )** *=> TransactionResponse*
+**contract.renew ( tokenId )** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.renew ( tokenId )** *=> TransactionResponse*
+**contract.reclaim ( tokenId , owner )** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.reclaim ( tokenId , owner )** *=> TransactionResponse*
+**contract.destroy ( tokenId )** *=> TransactionResponse*
 
 TODO
 
-**TakoyakiContract.prototype.destroy ( tokenId )** *=> TransactionResponse*
+**contract.available ( tokenId )** *=> Promise<boolean>*
 
 TODO
 
-**TakoyakiContract.prototype.available ( tokenId )** *=> Promise<boolean>*
+**contract.getTakoyaki ( tokenId )** *=> Promise<Object>*
 
 TODO
 
-**TakoyakiContract.prototype.expires ( tokenId )** *=> Promise<number>*
+**contract.ownerOf ( tokenId )** *=> Promise<string>*
 
 TODO
 
-**TakoyakiContract.prototype.getTraits ( tokenId )** *=> Promise<Traits>*
+**contract.balanceOf ( address )** *=> Promise<BigNumber>*
 
 TODO
 
-**TakoyakiContract.prototype.ownerOf ( tokenId )** *=> Promise<string>*
+**contract.approve ( toAddress , tokenId )** *=> Promise<TransactionResponse>*
 
 TODO
 
-**TakoyakiContract.prototype.balanceOf ( address )** *=> Promise<BigNumber>*
+**contract.getApproved ( tokenId )** *=> Promise<string>*
 
 TODO
 
-**TakoyakiContract.prototype.approve ( toAddress , tokenId )** *=> Promise<TransactionResponse>*
+**contract.setApprovedForAll ( toAddress , isApproved )** *=> Promise<TransactionResponse>*
 
 TODO
 
-**TakoyakiContract.prototype.getApproved ( tokenId )** *=> Promise<string>*
+**contract.isApprovedForAll ( owner , operator )** *=> Promise<boolean>*
 
 TODO
 
-**TakoyakiContract.prototype.setApprovedForAll ( toAddress , isApproved )** *=> Promise<TransactionResponse>*
+**contract.transferFrom ( fromAddress , toAddress, tokenId )** *=> Promise<TransactionResponse>*
 
 TODO
 
-**TakoyakiContract.prototype.isApprovedForAll ( owner , operator )** *=> Promise<boolean>*
+**contract.safeTransferFrom ( fromAddress , toAddress , tokenId , data )** *=> Promise<TransactionResponse>*
 
 TODO
 
-**TakoyakiContract.prototype.transferFrom ( fromAddress , toAddress, tokenId )** *=> Promise<TransactionResponse>*
-
-TODO
-
-**TakoyakiContract.prototype.safeTransferFrom ( fromAddress , toAddress , tokenId , data )** *=> Promise<TransactionResponse>*
-
-TODO
 
 
 License

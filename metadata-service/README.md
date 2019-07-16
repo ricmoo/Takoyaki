@@ -10,19 +10,19 @@ for each token.
 Endpoints
 ---------
 
-**https://takoyaki.nftmd.com/json/TOKEN_ID**
+**[https://takoyaki.nftmd.com/json/TOKEN_ID](https://takoyaki.nftmd.com/json/b05e424817fb90aa7a79e9da5c5f94070a316219c6ebb863a9ff7ca357dc9fa9/)**
 
 Generates the JSON description of the *TOKEN_ID* Takoyaki Token.
 
 
-**https://takoyaki.nftmd.com/svg/TOKEN_ID**
+**[https://takoyaki.nftmd.com/svg/ENCODED_TRAITS](https://takoyaki.nftmd.com/svg/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
 Generates the SVG of the *TOKEN_ID* Takoyaki Token. The *TOKEN_ID* should
 be either a 64 nibble hex string (**no** `0x` prefix), or the string `random`
 to generate a random image.
 
 
-**https://takoyaki.nftmd.com/png/:TOKEN_ID?size=:SIZE**
+**[https://takoyaki.nftmd.com/png/ENCODED_TRAITS?size=:SIZE](https://takoyaki.nftmd.com/png/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
 Generates the image of the *TOKEN_ID* Takoyaki Token, as a *SIZE* x *SIZE*
 pixel PNG. The *TOKEN_ID* should be either a 64 nibble hex string (**no**
@@ -50,6 +50,16 @@ deploy the service to Heroku, from the repositories **root** folder, run:
 
 ```
 /home/ricmoo/takoyaki> npm run deploy-metadata-service
+```
+
+**Setup**
+
+The first time used, you must set up Herkou. If you are deploying this
+you will need to update the package.json to reflect a Heroku host you
+own.
+
+```
+/home/ricmoo/takoyaki> npm run setup-heroku
 ```
 
 

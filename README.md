@@ -7,7 +7,6 @@ to start your foray into ENS, which allows you to use a friendly name
 for your Ethereum address, rather than a long string of hexidecimal
 characters.
 
-
 Takoyaki began was our [ETHNewYork](https://ethnewyork.com) hackathon project.
 
 We've since spruced it up a bit and are releasing it. :)
@@ -19,6 +18,13 @@ Web Interface
 By far, the easiest way to interact with Takoyaki, is using our website, https://takoyaki.cafe.
 
 
+Contract
+--------
+
+The contract is deployed on Ropsten and will soon be deployed to Mainnet.
+
+See: [Takoyaki Contract](https://github.com/ricmoo/Takoyaki/tree/master/contracts)
+
 
 API
 ---
@@ -28,30 +34,22 @@ contract on the Ethereum network, as well as generate the traits from on-chain
 data and finally render (entirely on the client side) a give Takoyaki for a
 given set of traits.
 
-The JavaScript API can be installed using:
+See: [Takoyaki NPM Library](https://github.com/ricmoo/Takoyaki/tree/master/lib)
 
-```
-/home/ricmoo/my-project> npm install --save takoyaki
-```
 
-**Takoyaki.connect(providerOrSigner)**
+Metadata Service
+----------------
 
-TakoyakiContract.makeCommitment( label , owner , salt)
-TakoyakiContract.commit( label , owner , salt)
-TakoyakiContract.reveal( label , owner , salt)
-TakoyakiContract.getTraits( label , owner , salt)
+The Metadata service is designed to be run on Heroku, and can be run locally
+or deployed to your own Heroku instance.
 
-TakoyakiContract.fee()
-TakoyakiContract.totalSupply()
-TakoyakiContract.defaultResolver()
-TakoyakiContract.admin()
-TakoyakiContract.()
+See: [Takoyaki Metadata Service](https://github.com/ricmoo/Takoyaki/tree/master/metadata-service)
 
-**Takoyaki.getTraits(label)**
-**Takoyaki.getSvg(traits)**
 
 Command Line Interface
 ----------------------
+
+This is still under constructions...
 
 ```
 /home/ricmoo> takoyaki --help
@@ -60,16 +58,6 @@ Usage:
     takoyaki commit LABEL [ --salt SALT ] [ --owner ADDRESS ]
     takoyaki reveal LABEL [ --salt SALT ] [ --owner ADDRESS ]
 ```
-
-
-Project Componets
------------------
-
-- The [NPM library](https://github.com/ricmoo/Takoyaki/tree/master/lib); all the needed JavaScript libraries for blockchain interaction and composing the asset SVG (client-side)
-- The [Metadata Service](https://github.com/ricmoo/Takoyaki/tree/master/metadata-service); a Heroku app which returns JSON metadata, composed SVG and renders PNG images per Token
-- The [Takoyaki.cafe website](https://github.com/ricmoo/Takoyaki/tree/master/website); the complete website frontend, as well as a packaged single-file [dist](https://github.com/ricmoo/Takoyaki/tree/master/dist) which is availble online at [Takoyaki.cafe](https://takoyaki.cafe)
-- The [Command-Line Interface](https://github.com/ricmoo/Takoyaki/tree/master/bin); 
-- The [Solidity Contract](https://github.com/ricmoo/Takoyaki/blob/master/contracts/TakoyakiRegistrar.sol); the ERC-721 and Registrar contract on-chain, deployed on [mainnet](https://etherscan.io) and [ropsten](https://ropsten.etherscan.io)
 
 
 License
