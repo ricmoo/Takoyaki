@@ -319,7 +319,7 @@ contract TakoyakiRegistrar {
         takoyaki.expires = uint48(now + REGISTRATION_PERIOD);
         takoyaki.commitBlockNumber = commitment.blockNumber;
         takoyaki.revealBlockNumber = uint48(block.number);
-        takoyaki.revealedSalt = salt;
+        takoyaki.revealedSalt = keccak256(abi.encode(tokenId, salt));
         takoyaki.owner = owner;
         takoyaki.upkeepFee = commitment.feePaid;
         takoyaki.approved = address(0);
@@ -366,9 +366,10 @@ contract TakoyakiRegistrar {
      *
      *  Anyone may call this.
      */
-    function syncUpkeepFee(uint256 tokenid) external {
+    function syncUpkeepFee(uint256 tokenId) external {
         Takoyaki storage takoyaki = _takoyaki[tokenId];
-        require(takoyaki.owner != address(0) && takoyaki.expires > now);
+        require(takoyaki.owner != address(0));
+        require(takoyaki.expires > now);
 
         // If the fee has decreased, set this Takoyyaki as the new lower fee
         if (_fee < takoyaki.upkeepFee) { takoyaki.upkeepFee = _fee; }
@@ -383,13 +384,13 @@ contract TakoyakiRegistrar {
         Takoyaki storage takoyaki = _takoyaki[tokenId];
         require(takoyaki.owner != address(0));
 
-        // If the fee has decreased, set this Takoyyaki as the new lower fee
+        // Must not be expired or outside of grace period
+        require(takoyaki.expires > (now - GRACE_PERIOD));
+
+        // If the fee has decreased, set this Takoyaki upkeep fee as the new lower fee
         if (_fee < takoyaki.upkeepFee) { takoyaki.upkeepFee = _fee; }
 
         require(msg.value == takoyaki.upkeepFee);
-
-        // Must not be expired or outside of grace period
-        require(takoyaki.expires > (now - GRACE_PERIOD));
 
         // Prevent super long registration; upkeep must be semi-periodic
         require(takoyaki.expires < now + (2 * REGISTRATION_PERIOD));
@@ -450,7 +451,7 @@ contract TakoyakiRegistrar {
         return takoyaki.owner;
     }
 
-    // Note: Expired tokens will still count towards the balance
+    // Note: Expired tokens will still count towards the balance; use destroy to sync
     function balanceOf(address owner) external view returns (uint256) {
         require(owner != address(0));
         return _balances[owner];
