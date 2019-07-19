@@ -87,34 +87,48 @@ div {
     z-index: 1
 }
 
-#background .tile div {
+#background .tile div.backdrop {
+    background: #fff;
+    border-radius: 10px;
+    height: 160px;
+    overflow: hidden;
+    position: absolute;
+    transform-style: preserve-3d;
+    width: 160px;
+}
+
+#background .tile div.backdrop div {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     border-radius: 10px;
     border: 1px solid black;
     height: 160px;
+    opacity: 0.2;
     overflow: hidden;
     position: absolute;
     transform-style: preserve-3d;
-    opacity: 0.2;
     width: 160px;
-    transition: opacity 1.5s linear, transform 1.0s ease-out;
 }
 
-#background .tile div.backface {
-    transform: rotateY(-180deg);
+body.animated #background .tile div.backdrop {
+    transition: transform 2.0s ease-out;
 }
 
-#background .tile:hover div {
+body.animated #background .tile div.backdrop div {
+    transition: opacity 1.5s linear;
+}
+
+#background .tile div.backdrop div.highlight {
+    opacity: 1;
+}
+
+#background .tile:hover div.backdrop div {
     opacity: 1;
     transition: opacity 0.8s linear, transform 1.0s ease-out;
 }
 
-#background .tile div.fast {}
-
-#background .tile div.highlight {
+body.animated #background .tile div.highlight {
     transition: opacity 0.1s linear, transform 1.0s ease-out;
-    opacity: 1;
 }
 
 #background .tile span {

@@ -1,4 +1,9 @@
 (function () {
+
+    function getSvg(traits) {
+        return Takoyaki.getSvg(traits).replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
+    }
+
     // Setup the background. Center tiles of Takoyaki across the entire
     // background, highlighting them randomly
     (function () {
@@ -9,7 +14,6 @@
 
         // Maps Tile id to function(label, traits) to reveal
         const SetTile = { };
-        const LastTile = null;
 
         let lastHighlight = -1;
 
@@ -53,49 +57,53 @@
             return false;
         }
 
+        let nextZIndex = 1;
+
         function createTakoyakiTile(id) {
             let tile = document.createElement("div");
             tile.className = "tile";
             tile.id = id;
+            tile.style.zIndex = nextZIndex++;
             Background.appendChild(tile);
 
+            let _front = document.createElement("div");
+            _front.className = "backdrop";
+            tile.appendChild(_front);
+
             let front = document.createElement("div");
-            tile.appendChild(front);
+            _front.appendChild(front);
+
+            let _back = document.createElement("div");
+            _back.className = "backdrop";
+            tile.appendChild(_back);
 
             let back = document.createElement("div");
-            back.classList.add("backface")
-            tile.appendChild(back);
+            _back.appendChild(back);
 
             let current = 1;
 
             SetTile[id] = function(label, traits) {
                 let div = (current % 2) ? back: front;
 
-                if (LastTile) { lastTile.classList.remove("highlight"); }
-                lastTile = div;
-
                 div.style.background = Takoyaki.getLabelColor(label);
                 div.style.borderColor = Takoyaki.getLabelColor(label, 90, 50);
 
-                if (current > 1) {
+                if (current > 2) {
                     div.classList.add("highlight");
                     setTimeout(() => { div.classList.remove("highlight"); }, 4000);
                 }
+                current++;
 
+                div.innerHTML = getSvg(traits);
 
-                div.innerHTML = Takoyaki.getSvg(traits);
+                tile.style.zIndex = nextZIndex++;
 
                 let span = document.createElement("span");
                 span.textContent = label;
                 div.appendChild(span);
 
-                front.style.transform = "rotateY(" + (current * 180) + "deg)";
-                current++;
-                back.style.transform = "rotateY(" + (current * 180) + "deg)";
-
-                tile.style.zIndex = current;
-                tile.classList.add("flipping");
-                setTimeout(() => { tile.classList.remove("flipping"); }, 3500);
+                _back.style.transform = "rotateY(" + (current * 180) + "deg) translateZ(0.1px)";
+                _front.style.transform = "rotateY(" + ((current + 1) * 180) + "deg) translateZ(0.1px)";
             };
 
             return tile;
@@ -103,6 +111,9 @@
 
         // Fills the background with Takoyaki tiles (centered)
         function fillBackground() {
+            document.body.classList.remove("animated");
+
+            let inflight = 0;
 
             let ox = ((window.innerWidth % 165) - 160) / 2;
             let oy = ((window.innerHeight % 165) - 160) / 2;
@@ -117,8 +128,24 @@
                         let genes = TakoyakiHistory[lastHighlight];
                         tmp = createTakoyakiTile(id);
                         SetTile[id](genes.name, Takoyaki.getTraits(genes));
+
+                        // In Chrome, it only allocates a back-buffer once a non-visible
+                        // backface has been shown at least once, so we flip it before
+                        // animations are enabled below
+                        (function(id, genes) {
+                            inflight++;
+                            setTimeout(function() {
+                                SetTile[id](genes.name, Takoyaki.getTraits(genes));
+                                inflight--;
+                                if (inflight === 0) {
+                                    setTimeout(function() {
+                                        document.body.classList.add("animated");
+                                    }, 10);
+                                }
+                            }, 0);
+                        })(id, genes);
                     }
-                    tmp.style.transform = ("translate(" + (ox + x) + "px, " + (oy + y) + "px)");
+                    tmp.style.transform = ("translate3d(" + (ox + x) + "px, " + (oy + y) + "px, 0)");
                     j++;
                 }
                 i++;
@@ -277,7 +304,7 @@
     const TakoyakiContainer = document.getElementById("takoyaki");
 
     function draw(traits) {
-        TakoyakiContainer.innerHTML = Takoyaki.getSvg(traits);
+        TakoyakiContainer.innerHTML = getSvg(traits);
     }
 
 
