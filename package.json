@@ -25,12 +25,12 @@
   },
   "homepage": "https://takoyaki.cafe/",
   "dependencies": {
-    "ethers": "^5.0.0-beta.141",
+    "ethers": ">=5.0.0-beta.146",
     "uglify-es": "^3.3.9"
   },
   "devDependencies": {
-    "@ethersproject/cli": "^5.0.0-beta.129",
-    "mocha": "^6.1.4"
+    "@ethersproject/cli": "^5.0.0-beta.133",
+    "mocha": "^6.2.0"
   },
   "repository": {
     "type": "git",
