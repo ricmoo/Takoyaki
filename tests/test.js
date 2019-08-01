@@ -10,6 +10,7 @@ const { compile } = require("@ethersproject/cli/solc");
 const Takoyaki = require("../lib");
 
 const ens = require("./ens");
+const { SourceMapper } = require("./source-mapper");
 
 // Start Parity in dev mode:
 //   /home/ricmoo> echo "\n" > test.pwds
@@ -22,10 +23,27 @@ let ABI = null;
 before(async function() {
     // Compile Takoyaki Registrar
     console.log("Compiling TakoyakiRegistrar...");
+    let source = fs.readFileSync(resolve(__dirname, "../contracts/TakoyakiRegistrar.sol")).toString();
+
+    let sourceMapper = new SourceMapper(source);
+    sourceMapper.set("MIN_COMMIT_BLOCKS", null);
+    sourceMapper.set("MAX_COMMIT_BLOCKS", "10");
+    sourceMapper.set("WAIT_CANCEL_BLOCKS", "16");
+    sourceMapper.set("REGISTRATION_PERIOD", "(12 minutes)");
+    sourceMapper.set("GRACE_PERIOD", "(2 minutes)");
+
+    let warnings = sourceMapper.warnings;
+    if (warnings.length) {
+        console.log(warnings);
+        warnings.forEach((warning) =>{
+            console.log("[Source Mapper] " + warning.line);
+        });
+        throw new Error("Errors during source mapping.");
+    }
+
     let code = null;
     try {
-        let source = fs.readFileSync(resolve(__dirname, "../contracts/TakoyakiRegistrar.sol")).toString();
-        code = compile(source, {
+        code = compile(sourceMapper.source, {
             optimize: true
         }).filter((contract) => (contract.name === "TakoyakiRegistrar"))[0];
     } catch (e) {

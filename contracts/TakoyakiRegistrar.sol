@@ -45,15 +45,15 @@ contract TakoyakiRegistrar {
 
     // Must commit between (inclusive) 4 blocks (1 minute) and 5760 blocks (1 day)
     // Cancelling must wait for 1 hour after the commitment expired
-    uint48 constant MIN_COMMIT_BLOCKS   = (60 / 15);
-    uint48 constant MAX_COMMIT_BLOCKS   = (24 * 60 * 60 / 15);
-    uint48 constant WAIT_CANCEL_BLOCKS  = (60 * 60 / 15);
+    uint48 constant MIN_COMMIT_BLOCKS   = (60 / 15);             /*!Test: MIN_COMMIT_BLOCKS = "(60 / 15)" */
+    uint48 constant MAX_COMMIT_BLOCKS   = (24 * 60 * 60 / 15);   /*!Test: MAX_COMMIT_BLOCKS = "(24 * 60 * 60 / 15)" */
+    uint48 constant WAIT_CANCEL_BLOCKS  = (60 * 60 / 15);        /*!Test: WAIT_CANCEL_BLOCKS = "(60 * 60 / 15)" */
 
 
     // A registration lasts for 1 year (a little extra for leap years) and
     // once expired is available to ONLY to the owner for an additional 30 days
-    uint48 constant REGISTRATION_PERIOD    = (366 days);
-    uint48 constant GRACE_PERIOD           = (30 days);
+    uint48 constant REGISTRATION_PERIOD    = (366 days);         /*!Test: REGISTRATION_PERIOD = "(366 days)" */
+    uint48 constant GRACE_PERIOD           = (30 days);          /*!Test: GRACE_PERIOD = "(30 days)" */
 
 
     /////////////////////////////
@@ -418,7 +418,7 @@ contract TakoyakiRegistrar {
     // - The revealBlockNumber simplifies clients attempting to lookup the unhashed label
     // - The expires date is useful for UI
     // - The status has more information about the current registration status
-    function getTakoyaki(uint256 tokenId) external view returns (bytes32, address, uint256, uint48, uint48, uint48, uint8) {
+    function getTakoyaki(uint256 tokenId) external view returns (bytes32 revealSeed, address owner, uint256 upkeepFee, uint48 commitBlock, uint48 revealBlock, uint48 expires, uint8 status) {
 
         // Status:
         //  0: Available
