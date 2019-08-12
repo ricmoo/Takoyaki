@@ -473,7 +473,7 @@ contract TakoyakiRegistrar {
         // I think there is a bug in the OpenZepplin implt; it throws if the address is
         // zero, but the ERC-721 spec speficies 0 is valid to indicate no approved...
         require(takoyaki.expires > now);
-        return takoyaki.owner;
+        return takoyaki.approved;
     }
 
     function setApprovalForAll(address to, bool approved) external {
