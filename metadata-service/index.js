@@ -6,7 +6,7 @@ const queryParse = require('querystring').parse;
 const { resolve } = require("path");
 const urlParse = require('url').parse;
 
-//console.log("Warning: Using local debug takoyaki library...");
+//console.log("WARNING: Using local debug takoyaki library... ****************************");
 //const takoyaki = require("../lib");
 
 const takoyaki = require("takoyaki");
@@ -86,7 +86,7 @@ async function getJson(tokenId) {
         if (!seed) { return; }
         parts.push(seed.substring(2));
     });
-    let imageUrl = "https:/" + "/takoyaki.nftmd.com/png/" + parts.join("_");
+    let imageUrl = "https:/" + "/takoyaki.nftmd.com/png/" + parts.join("_") + "/";
 
     return {
         name: traits.genes.name,
@@ -98,7 +98,7 @@ async function getJson(tokenId) {
     };
 }
 
-const server = http.createServer((request, response) => {
+function handler(request, response) {
     function send(body, contentType, extraHeaders) {
         let headers = {
             "Server": Server,
@@ -225,6 +225,19 @@ const server = http.createServer((request, response) => {
                 sendError(500, "Server Error");
             });
 
+        } else if (match = pathname.match(/^\/profile\/(([0-9a-f][0-9a-f])*)\/$/)) {
+            let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
+            getJson(ethers.utils.id(name).substring(2)).then((json) => {
+                handler({
+                    headers: request.headers,
+                    method: "GET",
+                    url: json.image
+                }, response);
+            }, (error) => {
+                console.log(error);
+                sendError(500, "Server Error");
+            });
+
         } else {
             sendError(404, 'Not Found');
         }
@@ -244,8 +257,9 @@ const server = http.createServer((request, response) => {
     } else {
         sendError(400, 'Unsupported Method')
     }
-})
+}
 
+const server = http.createServer(handler);
 server.listen(Port, () => {
     console.log('takoyaki.nftmd.com API is running on port: ' + Port);
 });
