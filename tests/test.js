@@ -183,7 +183,7 @@ describe("ERC-721 Operations", function() {
 
 describe("Name Validatation", function() {
     describe("Valid Names", function() {
-        [ "loo", "ricmoo", "ricmoo01234567890123",
+        [ "lo", "r", "loo", "ricmoo", "ricmoo01234567890123",
           "0yfoobar", "1xfoobar", "1Xfoobar",
           "12345", "hello"
         ].forEach((name) => {
@@ -197,7 +197,7 @@ describe("Name Validatation", function() {
     });
 
     describe("Invalid Names", function() {
-        [ "lo", "r", "ricmoo012345678901234",
+        [ "ricmoo012345678901234",
           "0xfoobar", "0Xfoobar"
         ].forEach((name) => {
             it(name, function() {
