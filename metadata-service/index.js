@@ -198,9 +198,9 @@ function handler(request, response) {
     if (method === 'GET') {
 
         // Redirect insecure requests to secure ones
-        if (request.headers["x-forwarded-proto"] === "http") {
-            return redirect(`https://${ request.headers["host"] }${ request.url }`);
-        }
+        //if (request.headers["x-forwarded-proto"] === "http") {
+        //    return redirect(`https://${ request.headers["host"] }${ request.url }`);
+        //}
 
         // Get the label (and perform sanity checks on the URL)
         const label = takoyaki.urlToLabel(host);
