@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "description": "ENS Registrar, management website and metadata website for takoyaki.eth subnames.",
   "scripts": {
-    "deploy-metadata-service": "git subtree push --prefix metadata-service heroku master",
-    "deploy-metadata-service-force": "git push heroku `git subtree split --prefix metadata-service  master`:master --force",
-    "setup-heroku": "heroku git:remote -a takoyaki-meta",
+    "deploy-heroku": "git subtree push --prefix heroku-app heroku master",
+    "deploy-heroku-force": "git push heroku `git subtree split --prefix heroku-app  master`:master --force",
+    "setup-heroku": "heroku git:remote -a takoyaki-nft",
     "flatten": "meeseeks flatten index.html > dist/index.html",
     "dist": "./build.sh",
     "test": "mocha --timeout 600000 tests/test"
