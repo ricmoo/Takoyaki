@@ -167,7 +167,7 @@ function handler(request, response) {
     }
 
 
-    let host = (request.headers["x-forwarded-host"] || request.headers.host.split(":")[0]);
+    let host = request.headers.host.split(":")[0];
     let pathname = null;
     let query = { };
     let method = request.method;
@@ -182,6 +182,8 @@ function handler(request, response) {
     } catch (error) {
         return sendError(400, 'Bad URL');
     }
+
+    console.log(host, pathname, query);
 
     if (method === "GET" && pathname === "/_debug") {
         return send(JSON.stringify({
@@ -330,11 +332,11 @@ function handler(request, response) {
             return sendError(404, 'Not Found');
         }
 
-    } else if (request.method === "POST") {
+    } else if (method === "POST") {
         return sendError(404, "Not Found");
 
     // Enable CORS
-    } else if (request.method === 'OPTIONS') {
+    } else if (method === 'OPTIONS') {
         return response.send(204, "No Content", {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, OPTIONS, POST",
