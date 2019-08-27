@@ -183,6 +183,16 @@ function handler(request, response) {
         return sendError(400, 'Bad URL');
     }
 
+    if (method === "GET" && pathname === "/_debug") {
+        return send(JSON.stringify({
+            headers: request.headers,
+            url: request.url,
+            method: request.method,
+            rawHeaders: request.rawHeaders,
+        }), ContentTypes.JSON);
+    }
+
+
     if (method === 'GET') {
 
         // Redirect insecure requests to secure ones
@@ -315,14 +325,6 @@ function handler(request, response) {
                 console.log(error);
                 return sendError(500, "Server Error");
             });
-
-        } else if (pathname === "/_debug") {
-            return send(JSON.stringify({
-                headers: request.headers,
-                url: request.url,
-                method: request.method,
-                rawHeaders: request.rawHeaders,
-            }), ContentTypes.JSON);
 
         } else {
             return sendError(404, 'Not Found');
