@@ -13,15 +13,22 @@ const takoyaki = require("takoyaki");
 
 const { createConverter } = require("convert-svg-to-png");
 const ethers = require("ethers");
-const punycode = require('punycode');
 
+const Static = (function() {
+    let Static = { }
+    fs.readdirSync("./static/").forEach((filename) => {
+        Static["/" + filename] = fs.readFileSync("./static/" + filename).toString();
+    });
+    return Object.freeze(Static);
+})();
 
 const Port = (process.env.PORT || 5000);
-const Server = 'meta.takoyaki.cafe/0.0.1';
+const Server = "takoyaki.cafe/0.0.1";
+const Domain = null; //"takoyaki";
 
 const Provider = (function() {
     const ProviderOptions = {
-        infura: "6189cea41bac431286af08a06df219be",
+        infura: "ec7f689b45f148f899533b26547e4276",
         etherscan: undefined
     };
 //    return ethers.getDefaultProvider(process.env.NETWORK || "homestead");
@@ -30,13 +37,15 @@ const Provider = (function() {
 
 const TakoyakiContract = takoyaki.connect(Provider);
 
-const ContentTypes = {
+const ContentTypes = Object.freeze({
     HTML: "text/html; charset=utf-8",
     JSON: "application/json; charset=utf-8",
-    PNG: "image/png",
-    SVG: "image/svg+xml",
-    TXT: "text/plain",
-};
+    JS:   "application/javascript",
+    CSS:  "text/css",
+    PNG:  "image/png",
+    SVG:  "image/svg+xml",
+    TXT:  "text/plain",
+});
 
 function now() { return (new Date()).getTime(); }
 
@@ -67,13 +76,6 @@ const getConverter = (function() {
 })();
 
 
-function redirect(response, location) {
-    response.writeHead(301, {
-        Location: location
-    }, "Moved Permanently");
-    response.end();
-}
-
 async function getJson(tokenId) {
     let traits = await TakoyakiContract.getTraits("0x" + tokenId);
 
@@ -98,12 +100,28 @@ async function getJson(tokenId) {
     };
 }
 
+function getOpenGraph(name) {
+    let result = [ ];
+    result.push(`<meta property="og:title" content="${ name }" />`);
+    result.push(`<meta property="og:type" content="website" />`);
+    result.push(`<meta property="og:description" content="Hello, please. I is a Takoyaki NFT! My name is ${ name }. Much Hugs." />`);
+    result.push(`<meta property="og:url" content="${ takoyaki.labelToUrl(name) }" />`);
+    result.push(`<meta property="og:image:alt" content="Takoyaki: a pancake octopus ball" />`);
+    result.push(`<meta property="og:image:url" content="https://takoyaki.cafe/profile/${ Buffer.from(name).toString("hex") }" />`);
+    result.push(`<meta property="og:image:type" content="${ ContentTypes.PNG }" />`);
+    result.push(`<meta property="og:image:height" content="600" />`);
+    result.push(`<meta property="og:image:width" content="600" />`);
+    return result.join("\n    ");
+}
+
+
 function handler(request, response) {
     function send(body, contentType, extraHeaders) {
         let headers = {
             "Server": Server,
         };
 
+        // Add CORS headers
         if (request.headers["origin"]) {
             headers["Access-Control-Allow-Origin"] = "*";
         }
@@ -114,6 +132,7 @@ function handler(request, response) {
             headers["Access-Control-Allow-Headers"] = "X-Requested-With";
         }
 
+        // Add the body and relevant headers
         if (body != null) {
             let length = ((typeof(body) === "string") ? Buffer.byteLength(body): body.length);
             headers["Content-Length"] = length;
@@ -132,6 +151,14 @@ function handler(request, response) {
         }
     }
 
+    function redirect(location) {
+        response.writeHead(301, {
+            Server: Server,
+            Location: location
+        }, "Moved Permanently");
+        response.end();
+    }
+
     function sendError(code, reason) {
         response.writeHead(code, reason, {
             "Server": Server
@@ -140,113 +167,173 @@ function handler(request, response) {
     }
 
 
-    let url = null;
+    let host = (request.headers["x-forwarded-host"] || request.headers.host.split(":")[0]);
+    let pathname = null;
+    let query = { };
+    let method = request.method;
+
     try {
-        url = urlParse(request.url);
+        let url = urlParse(request.url);
+        pathname = url.pathname.toLowerCase();
+        if (pathname === "/") { pathname = "/index.html"; }
+        if (url.query) {
+            query = queryParse(url.query);
+        }
     } catch (error) {
         return sendError(400, 'Bad URL');
     }
 
-    if (request.method === 'GET') {
+    if (method === 'GET') {
+
+        // Redirect insecure requests to secure ones
         if (request.headers["x-forwarded-proto"] === "http") {
-            return redirect(response, `https://${ request.headers["host"] }${ request.url }`);
+            return redirect(`https://${ request.headers["host"] }${ request.url }`);
         }
 
-        let pathname = url.pathname.toLowerCase();
+        // Get the label (and perform sanity checks on the URL)
+        const label = takoyaki.urlToLabel(host);
+        {
+            let comps = host.split(".");
+            try {
+                if (comps.length < 2) { throw new Error("too few components"); }
+
+                if (["cafe", "local"].indexOf(comps.pop()) === -1) { throw new Error("unknown TLD"); }
+                if (comps.pop() !== Domain && Domain) { throw new Error("unknown domain"); }
+                if (comps.length > 1) { throw new Error("too many components"); }
+                if (comps.length && !comps[0]) { throw new Error("empty label"); }
+                if ((comps.length !== 0 && !label)) { throw new Error("label mismatch"); }
+            } catch (error) {
+                console.log(`Error: ${ host } (${ error.message })`);
+                return sendError(400, "Bad URL");
+            }
+        }
+
+        // URL: https://LABEL.takoyaki.cafe/
+        if (label) {
+            if (pathname !== "/index.html") { return sendError(404, "Not Found"); }
+            const html = Static["/index.html"].replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
+            return send(html, ContentTypes.HTML);
+        }
+
+        // Static file from ./static
+        // URL: https://takoyaki.cafe/FILENAME
+        if (Static[pathname]) {
+            return send(Static[pathname], ContentTypes[pathname.toUpperCase().split(".")[1]] || "application/octet-stream");
+        }
+
         let match = null;
 
         // Redirect non-directory paths to the directory path
-        if (match = pathname.match(/^\/(json|svg|png)\/(random|[0-9a-f_]+)$/)) {
-            redirect(response, `/${ match[1] }/${ match[2] }/`);
+        if (match = pathname.match(/^\/(json|svg|png|profile)\/([0-9a-f_]+)$/)) {
+            return redirect(`/${ match[1] }/${ match[2] }/`);
 
-        } else if (match = pathname.match(/^\/(svg|png)\/(random|[0-9a-f_]+)\/$/)) {
-            let kind = match[1];
-            let parts = match[2].split("_");
+        // Image
+        // URL: https://takoyaki.cafe/svg/TOKENID/
+        // URL: https://takoyaki.cafe/png/TOKENID/
+        // URL: https://takoyaki.cafe/png/TOKENID/?size=SIZE
+        } else if (match = pathname.match(/^\/(svg|png)\/([0-9a-f_]+)\/$/)) {
+            try {
+                const kind = match[1];
+                const parts = match[2].split("_").slice(1);
 
-            let filename = null;
-            let traits = null;
-            if (parts.length === 1 && parts[0] === "random") {
-                filename = "random";
-                traits =  takoyaki.getTraits();
-            } else {
-                parts = parts.slice(1);
-                traits = takoyaki.getTraits({
+                const traits = takoyaki.getTraits({
                     name: Buffer.from(parts[0], "hex").toString(),
                     salt: ("0x" + parts[1]),
                     seeds: parts.slice(2).map((seed) => ("0x" + seed))
                 });
-                filename = ethers.utils.id(traits.genes.name).substring(0, 10);
-            }
+                const filename = ethers.utils.id(traits.genes.name).substring(0, 10);
 
-            let svg = takoyaki.getSvg(traits);
+                let svg = takoyaki.getSvg(traits);
 
-            if (kind === "svg") {
-                send(svg, ContentTypes.SVG, {
-                    "Content-Disposition": `inline; filename="takoyaki-${ filename }.svg"`
-                });
+                if (kind === "svg") {
+                    return send(svg, ContentTypes.SVG, {
+                        "Content-Disposition": `inline; filename="takoyaki-${ filename }.svg"`
+                    });
 
-            } else if (kind === "png") {
-                let query = queryParse(url.query);
+                } else if (kind === "png") {
 
-                // Get the dimensions for the image
-                // - Default: 256x256
-                // - Must be a positive integer
-                // - Must be <= 1024x1024
-                let options = { height: 256, width: 256 };
-                try {
-                    if (query.size != null) {
-                        if (!query.size.match(/^[0-9]+$/)) {
-                            throw new Error("invalid size: " + query.size);
+                    // Get the dimensions for the image
+                    // - Default: 256x256
+                    // - Must be a positive integer
+                    // - Must be <= 1024x1024
+                    let options = { height: 256, width: 256 };
+                    try {
+                        if (query.size != null) {
+                            if (!query.size.match(/^[0-9]+$/)) {
+                                throw new Error("invalid size: " + query.size);
+                            }
+                            let size = parseInt(query.size);
+                            if (size > 1024) { size = 1024; }
+                            options.height = options.width = size;
                         }
-                        let size = parseInt(query.size);
-                        if (size > 1024) { size = 1024; }
-                        options.height = options.width = size;
+                    } catch (error) {
+                        console.log(error);
+                        return sendError(400, "Bad PNG Dimension");
                     }
-                } catch (error) {
-                    console.log(error);
-                    return sendError(400, "Bad PNG Dimension");
+
+                    return getConverter().convert(svg, options).then((png) => {
+                        return send(png, ContentTypes.PNG, {
+                             "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+                        });
+                    }, (error) => {
+                        console.log(error);
+                        return sendError(500, "Server Error");
+                    });
                 }
 
-                getConverter().convert(svg, options).then((png) => {
-                    send(png, ContentTypes.PNG, {
-                        "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+            } catch (error) {
+                console.log(error);
+                return sendError(500, "Server Error");
+            }
+
+        // NFT (ERC-721) JSON metadata url
+        // URL: https://takoyaki.cafe/json/TOKEN_ID
+        } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
+            return getJson(match[1]).then((json) => {
+                return send(JSON.stringify(json, null, 2), ContentTypes.JSON);
+            }, (error) => {
+                console.log(error);
+                return sendError(500, "Server Error");
+            });
+
+        // Image request by hex(LABEL); SVG only
+        } else if (match = pathname.match(/^\/profile\/(([0-9a-f][0-9a-f])*)\/$/)) {
+            let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
+            return getJson(ethers.utils.id(name).substring(2)).then((json) => {
+                const filename = ethers.utils.id(json.takoyakiTraits.genes.name).substring(0, 10);
+                let svg = takoyaki.getSvg(json.takoyakiTraits);
+                let options = { height: 600, width: 600 };
+                return getConverter().convert(svg, options).then((png) => {
+                    return send(png, ContentTypes.PNG, {
+                         "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
                     });
                 }, (error) => {
                     console.log(error);
-                    sendError(500, "Server Error");
+                    return sendError(500, "Server Error");
                 });
-            }
-
-        } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
-            getJson(match[1]).then((json) => {
-                send(JSON.stringify(json, null, 2), ContentTypes.JSON);
             }, (error) => {
                 console.log(error);
-                sendError(500, "Server Error");
+                return sendError(500, "Server Error");
             });
 
-        } else if (match = pathname.match(/^\/profile\/(([0-9a-f][0-9a-f])*)\/$/)) {
-            let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
-            getJson(ethers.utils.id(name).substring(2)).then((json) => {
-                handler({
-                    headers: request.headers,
-                    method: "GET",
-                    url: json.image
-                }, response);
-            }, (error) => {
-                console.log(error);
-                sendError(500, "Server Error");
-            });
+        } else if (pathname === "/_debug") {
+            return send(JSON.stringify({
+                headers: request.headers,
+                url: request.url,
+                method: request.method,
+                rawHeaders: request.rawHeaders,
+            }), ContentTypes.JSON);
 
         } else {
-            sendError(404, 'Not Found');
+            return sendError(404, 'Not Found');
         }
 
     } else if (request.method === "POST") {
-        sendError(404, "Not Found");
+        return sendError(404, "Not Found");
 
+    // Enable CORS
     } else if (request.method === 'OPTIONS') {
-        response.send(204, "No Content", {
+        return response.send(204, "No Content", {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, OPTIONS, POST",
             "Access-Control-Allow-Headers": "X-Requested-With",
@@ -255,7 +342,7 @@ function handler(request, response) {
         response.end();
 
     } else {
-        sendError(400, 'Unsupported Method')
+        return sendError(400, 'Unsupported Method')
     }
 }
 
