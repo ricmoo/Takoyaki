@@ -276,7 +276,7 @@ contract TakoyakiRegistrar {
         Commitment memory commitment = _commitments[blindedCommit];
         require(commitment.feePaid <= address(this).balance);
         require(commitment.payer == msg.sender);
-        require(commitment.blockNumber >= block.number + MAX_COMMIT_BLOCKS + WAIT_CANCEL_BLOCKS);
+        require(block.number >= commitment.blockNumber + MAX_COMMIT_BLOCKS + WAIT_CANCEL_BLOCKS);
 
         delete _commitments[blindedCommit];
 
