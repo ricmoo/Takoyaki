@@ -271,7 +271,7 @@ function handler(request, response) {
                     let options = { height: 256, width: 256 };
                     try {
                         if (query.size != null) {
-                            if (!query.size.match(/^[0-9]+$/)) {
+                            if (!query.size.match(/^[1-9][0-9]+$/)) {
                                 throw new Error("invalid size: " + query.size);
                             }
                             let size = parseInt(query.size);
