@@ -76,6 +76,25 @@ const getConverter = (function() {
     return getConverter;
 })();
 
+// @TODO: Make this more fun and dynamic.
+function getDescription(name) {
+    /*
+    const Openings = [
+        "Hello, please.",
+        "Happy today!",
+        "Felicitations!",
+        "I see you.",
+    ];
+    const Closing = [
+        "Much hugs.",
+        "*poke poke*",
+        "*heart emoji*",
+        "Nice to see you!",
+        "*blink*",
+    ];
+    */
+    return `Hello, please. I is a Takoyaki NFT! My name is ${ name }. Much Hugs.`;
+}
 
 async function getJson(tokenId) {
     let traits = await TakoyakiContract.getTraits("0x" + tokenId);
@@ -89,7 +108,7 @@ async function getJson(tokenId) {
         if (!seed) { return; }
         parts.push(seed.substring(2));
     });
-    let imageUrl = "https:/" + "/takoyaki.nftmd.com/png/" + parts.join("_") + "/";
+    let imageUrl = "https:/" + "/takoyaki.cafe/png/" + parts.join("_") + "/";
 
     return {
         name: traits.genes.name,
@@ -99,11 +118,6 @@ async function getJson(tokenId) {
 
         takoyakiTraits: traits,
     };
-}
-
-// @TODO: Make this more fun
-function getDescription(name) {
-    return `Hello, please. I is a Takoyaki NFT! My name is ${ name }. Much Hugs.`;
 }
 
 function escapeHtml(text, extra) {
@@ -199,8 +213,9 @@ function handler(request, response) {
         return sendError(400, 'Bad URL');
     }
 
-    console.log(host, pathname, query);
+    console.log("Req:", host, pathname, query);
 
+    /*
     if (method === "GET" && pathname === "/_debug") {
         return send(JSON.stringify({
             headers: request.headers,
@@ -209,14 +224,10 @@ function handler(request, response) {
             rawHeaders: request.rawHeaders,
         }), ContentTypes.JSON);
     }
+    */
 
 
     if (method === 'GET') {
-
-        // Redirect insecure requests to secure ones
-        //if (request.headers["x-forwarded-proto"] === "http") {
-        //    return redirect(`https://${ request.headers["host"] }${ request.url }`);
-        //}
 
         // Get the label (and perform sanity checks on the URL)
         const label = takoyaki.urlToLabel(host);
@@ -271,7 +282,9 @@ function handler(request, response) {
                 });
                 const filename = ethers.utils.id(traits.genes.name).substring(0, 10);
 
-                let svg = takoyaki.getSvg(traits);
+                let background = ((query.bg === "off") ? undefined: takoyaki.getLabelColor(traits.genes.name));
+
+                let svg = takoyaki.getSvg(traits, background);
 
                 if (kind === "svg") {
                     return send(svg, ContentTypes.SVG, {
@@ -315,7 +328,7 @@ function handler(request, response) {
             }
 
         // NFT (ERC-721) JSON metadata url
-        // URL: https://takoyaki.cafe/json/TOKEN_ID
+        // URL: https://takoyaki.cafe/json/TOKEN_ID/
         } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
             return getJson(match[1]).then((json) => {
                 return send(JSON.stringify(json, null, 2), ContentTypes.JSON);
@@ -325,6 +338,7 @@ function handler(request, response) {
             });
 
         // Image request by hex(LABEL); SVG only
+        // URL: takoyaki.cafe/profile/HEX_LABEL/
         } else if (match = pathname.match(/^\/profile\/(([0-9a-f][0-9a-f])*)\/$/)) {
             let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
             return getJson(ethers.utils.id(name).substring(2)).then((json) => {
@@ -368,5 +382,5 @@ function handler(request, response) {
 
 const server = http.createServer(handler);
 server.listen(Port, () => {
-    console.log('takoyaki.nftmd.com API is running on port: ' + Port);
+    console.log('App: takoyaki.cafe is running on port: ' + Port);
 });
