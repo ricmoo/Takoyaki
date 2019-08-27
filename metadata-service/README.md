@@ -10,36 +10,39 @@ for each token.
 Endpoints
 ---------
 
-**[https://takoyaki.nftmd.com/json/TOKEN_ID](https://takoyaki.nftmd.com/json/b05e424817fb90aa7a79e9da5c5f94070a316219c6ebb863a9ff7ca357dc9fa9/)**
+**[https://takoyaki.cafe/json/TOKEN_ID](https://takoyaki.cafe/json/b05e424817fb90aa7a79e9da5c5f94070a316219c6ebb863a9ff7ca357dc9fa9/)**
 
 Generates the JSON description of the *TOKEN_ID* Takoyaki Token.
 
 
-**[https://takoyaki.nftmd.com/svg/ENCODED_TRAITS](https://takoyaki.nftmd.com/svg/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
+**[https://takoyaki.cafe/svg/ENCODED_TRAITS](https://takoyaki.cafe/svg/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
 Generates the SVG of the Takoyaki Token with the *ENCODED_TRAITS*
-(see below for the encoding). The string
-"[random](https://takoyaki.nftmd.com/svg/random/)"
-may be used as the *ENCOED_TRAITS* to generate a random Takoyaki image.
+(see below for the encoding).
 
 
-**[https://takoyaki.nftmd.com/png/ENCODED_TRAITS?size=:SIZE](https://takoyaki.nftmd.com/png/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
+**[https://takoyaki.cafe/png/ENCODED_TRAITS?size=:SIZE](https://takoyaki.cafe/png/1_7269636d6f6f_670f0aec6d79467f07bfdc7fe6a934b807692e85f13ee6b7bc6da69b7188f23e_6b6b4fb95221_7265b22d098e_aa698013d271_82422dcd5539_394b95c369ec/)**
 
 Rasterizes the above SVG into a PNG for a Takoyaki Token with the
-*ENCODED_TRAITS* as a *SIZE* x *SIZE* pixel PNG. The string
-"[random](https://takoyaki.nftmd.com/png/random/)"
-may be used as the *ENCODED_TRAITS* to generate a random Takoyaki image.
+*ENCODED_TRAITS* as a *SIZE* x *SIZE* pixel PNG.
 
 If the size query parameter is ommitted, a default size of 256
 will be used. The maximum size is 1024x1024 pixels.
 
 
+**[https://takoyaki.cafe/profile/HEX_ENCODED_NAME](https://takoyaki.cafe/profile/7269636d6f6f/)**
+
+Generates a PNG (600px x 600px) by the *HEX_ENCODED_NAME* with its background color. This is
+used for the Open Graph headers, which can be generated prior to knowing the traits. As a
+result this call is slower, as it has to lookup (on the blockchain) the traits.
+
+
 Token ID
 --------
 
-The token ID of a Takoyaki is the keccak256 of the UTF-8 bytes of its name.
+The token ID of a Takoyaki is the keccak256 of the normalized UTF-8 bytes of its name.
 
-The name can be normalized using punycode to convert to ASCII and back to UTF-8.
+The name can be normalized using the nameprep normalization.
 
 
 Encoding Traits
