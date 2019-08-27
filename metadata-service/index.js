@@ -313,7 +313,7 @@ function handler(request, response) {
             let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
             return getJson(ethers.utils.id(name).substring(2)).then((json) => {
                 const filename = ethers.utils.id(json.takoyakiTraits.genes.name).substring(0, 10);
-                let svg = takoyaki.getSvg(json.takoyakiTraits);
+                let svg = takoyaki.getSvg(json.takoyakiTraits, takoyaki.getLabelColor(name));
                 let options = { height: 600, width: 600 };
                 return getConverter().convert(svg, options).then((png) => {
                     return send(png, ContentTypes.PNG, {
