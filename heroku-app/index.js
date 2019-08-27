@@ -99,6 +99,8 @@ function getDescription(name) {
 async function getJson(tokenId) {
     let traits = await TakoyakiContract.getTraits("0x" + tokenId);
 
+    if (traits.genes.state !== 5) { return null; }
+
     // @TODO: detect any Japanese character and use a Japanese description
 
     traits.genes.upkeepFee = ethers.utils.formatEther(traits.genes.upkeepFee)
@@ -174,7 +176,7 @@ function handler(request, response) {
         });
 
         response.writeHead(200, headers);
-        if (body != null) {
+        if (body != null && request.method !== "HEAD") {
             response.end(body);
         } else {
             response.end();
@@ -227,7 +229,7 @@ function handler(request, response) {
     */
 
 
-    if (method === 'GET') {
+    if (method === 'GET' || method === "HEAD") {
 
         // Get the label (and perform sanity checks on the URL)
         const label = takoyaki.urlToLabel(host);
@@ -282,7 +284,7 @@ function handler(request, response) {
                 });
                 const filename = ethers.utils.id(traits.genes.name).substring(0, 10);
 
-                let background = ((query.bg === "off") ? undefined: takoyaki.getLabelColor(traits.genes.name));
+                let background = ((query.nobg != null) ? undefined: takoyaki.getLabelColor(traits.genes.name));
 
                 let svg = takoyaki.getSvg(traits, background);
 
@@ -331,6 +333,12 @@ function handler(request, response) {
         // URL: https://takoyaki.cafe/json/TOKEN_ID/
         } else if (match = pathname.match(/^\/json\/([0-9a-f]{64})\/$/)) {
             return getJson(match[1]).then((json) => {
+
+                // Not hatched yet...
+                if (json == null) {
+                    return sendError(404, "Not Found");
+                }
+
                 return send(JSON.stringify(json, null, 2), ContentTypes.JSON);
             }, (error) => {
                 console.log(error);
@@ -340,15 +348,27 @@ function handler(request, response) {
         // Image request by hex(LABEL); SVG only
         // URL: takoyaki.cafe/profile/HEX_LABEL/
         } else if (match = pathname.match(/^\/profile\/(([0-9a-f][0-9a-f])*)\/$/)) {
+
             let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
+
+            let extraHeaders = {
+                "Content-Disposition": `inline; filename="takoyaki-${ ethers.utils.id(name).substring(0, 10) }.png"`
+            };
+
             return getJson(ethers.utils.id(name).substring(2)).then((json) => {
-                const filename = ethers.utils.id(json.takoyakiTraits.genes.name).substring(0, 10);
+
+                // This token is unhatched...
+                if (json == null) {
+                    let traits = takoyaki.getTraits();
+                    traits.state = 0;
+                    json = { takoyakiTraits: traits };
+                    extraHeaders["Cache-Control"] = "max-age=30";
+                }
+
                 let svg = takoyaki.getSvg(json.takoyakiTraits, takoyaki.getLabelColor(name));
                 let options = { height: 600, width: 600 };
                 return getConverter().convert(svg, options).then((png) => {
-                    return send(png, ContentTypes.PNG, {
-                         "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
-                    });
+                    return send(png, ContentTypes.PNG, extraHeaders);
                 }, (error) => {
                     console.log(error);
                     return sendError(500, "Server Error");
