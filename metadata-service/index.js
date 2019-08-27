@@ -39,6 +39,7 @@ const TakoyakiContract = takoyaki.connect(Provider);
 
 const ContentTypes = Object.freeze({
     HTML: "text/html; charset=utf-8",
+    ICO:  "image/x-icon",
     JSON: "application/json; charset=utf-8",
     JS:   "application/javascript",
     CSS:  "text/css",
@@ -92,7 +93,7 @@ async function getJson(tokenId) {
 
     return {
         name: traits.genes.name,
-        description: `Hello! I am a Takoyaki. My name is ${ JSON.stringify(traits.genes.name) }.`,
+        description: getDescription(traits.genes.name),
         image: imageUrl,
         url: takoyaki.labelToUrl(traits.genes.name),
 
@@ -100,11 +101,26 @@ async function getJson(tokenId) {
     };
 }
 
+// @TODO: Make this more fun
+function getDescription(name) {
+    return `Hello, please. I is a Takoyaki NFT! My name is ${ name }. Much Hugs.`;
+}
+
+function escapeHtml(text, extra) {
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    if (extra) {
+        if (extra.indexOf('"')) {
+            text = text.replace('"', "&quot;");
+        }
+    }
+    return text;
+}
+
 function getOpenGraph(name) {
     let result = [ ];
-    result.push(`<meta property="og:title" content="${ name }" />`);
+    result.push(`<meta property="og:title" content="${ escapeHtml(name, '"') }" />`);
     result.push(`<meta property="og:type" content="website" />`);
-    result.push(`<meta property="og:description" content="Hello, please. I is a Takoyaki NFT! My name is ${ name }. Much Hugs." />`);
+    result.push(`<meta property="og:description" content="${ escapeHtml(getDescription(name), '"') }" />`);
     result.push(`<meta property="og:url" content="${ takoyaki.labelToUrl(name) }" />`);
     result.push(`<meta property="og:image:alt" content="Takoyaki: a pancake octopus ball" />`);
     result.push(`<meta property="og:image:url" content="https://takoyaki.cafe/profile/${ Buffer.from(name).toString("hex") }" />`);
