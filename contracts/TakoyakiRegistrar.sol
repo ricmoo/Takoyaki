@@ -184,13 +184,13 @@ contract TakoyakiRegistrar {
         Takoyaki memory takoyaki = _takoyaki[_tokenId];
         require(takoyaki.expires > now);
 
-        string memory uri = "https://takoyaki.nftmd.com/json/_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-";
+        string memory uri = "https://takoyaki.cafe/json/_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-";
 
         // Offset into the URI to replace. Skips
         //  - the length prefix (32 bytes)
-        //  - the "https://takoyaki.nftmd.com/json/" (32 bytes)
+        //  - the "https://takoyaki.cafe/json/" (27 bytes)
         uint offset = 0;
-        assembly { offset := add(uri, 64) }
+        assembly { offset := add(uri, 59) }
 
         // ASCII hexidecimal character lookup table
         uint hexLut = 0x3031323334353637383961626364656667000000000000000000000000000000;
