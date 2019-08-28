@@ -1,11 +1,10 @@
 {
-  "name": "metadata-service",
+  "name": "takoyaki-app",
   "version": "0.0.1",
   "description": "Takoyaki metadata service.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "local": "heroku local web",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

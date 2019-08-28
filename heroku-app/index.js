@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require("crypto");
 const fs = require("fs");
 const http = require('http');
 const queryParse = require('querystring').parse;
@@ -50,31 +51,105 @@ const ContentTypes = Object.freeze({
 
 function now() { return (new Date()).getTime(); }
 
-const getConverter = (function() {
-    let converter = null;
-    let lastConverterTime = null;
+const MAX_CONVERTERS = 5;
+const MAX_PENDING_PER_CONVERTER = 25;
 
-    function getConverter() {
-        if (!converter) {
-            converter = createConverter({
-                puppeteer: {
-                    args: [ '--no-sandbox' ]
-                }
-            });
-        }
-        lastConverterTime = now();
-        return converter;
+let _nextCid = 1;
+const _converters = [ ];
+const _stats = { lastTime: 0, inUse: 0, frameCount: 0, total: 0, mean: [ ] };
+
+function getStats() {
+    const result = _stats.mean.slice();
+    if (_stats.frameCount) {
+        result.push(_stats.inUse / _stats.frameCount);
     }
 
-    setInterval(() => {
-        if (converter && (now() - lastConverterTime > 30000)) {
-            converter.destroy();
-            converter = null;
-        }
-    }, 10000);
+    return {
+        total: _stats.total,
+        means: result
+    };
+}
 
-    return getConverter;
-})();
+function getConverter() {
+    let converter = null;
+
+    _stats.inUse += _converters.reduce((accum, c) => (accum + c.length()), 0);
+    _stats.frameCount++;
+    _stats.total++;
+    if ((now() - _stats.lastTime) > 60000) {
+        if (_stats.frameCount) {
+            _stats.mean.push(_stats.inUse / _stats.frameCount);
+            while (_stats.mean.length > 20) { _stats.mean.shift(); }
+        }
+        _stats.inUse = 0;
+        _stats.frameCount = 0;
+        _stats.lastTime = now();
+    }
+
+    // Look for a converter with no work...
+    for (let i = 0; i < _converters.length; i++) {
+        if (_converters[i].length() === 0) {
+            converter = _converters[i];
+            break;
+        }
+    }
+    if (!converter) {
+
+        // Create a new converter if we have space...
+        if (_converters.length < MAX_CONVERTERS) {
+            let id = _converters.length;
+            console.log("Creating new Converter:", id);
+            const instance = createConverter({ puppeteer: { args: [ '--no-sandbox' ] } });
+            const convert = instance.convert.bind(instance);
+            const inflight = [ ];
+            const triggerNext = function(cid) {
+                if (inflight.length === 0 || inflight[0].cid !== cid) {
+                    console.log("What?!", id, inflight[0].cid, cid);
+                    return;
+                }
+                inflight.shift();
+                if (inflight.length) {
+                    let ready = inflight[0];
+                    ready.resolve({ id: id, convert: convert, done: function() { triggerNext(ready.cid); } });
+                }
+            }
+            const queue = function(resolve, reject) {
+                const cid = _nextCid++;
+                inflight.push({ id, cid, resolve, reject });
+                if (inflight.length === 1) {
+                    let ready = inflight[0];
+                    ready.resolve({ id: id, convert: convert, done: function() { triggerNext(ready.cid); } });
+                }
+            }
+            converter = {
+                id: id,
+                queue: queue,
+                length: function() { return inflight.length; }
+            };
+            _converters.push(converter);
+
+        } else {
+            // Find the least busy converter...
+            let converters = _converters.slice();
+            converters.sort((a, b) => (a.length() - b.length()));
+            if (converters[0].length() < MAX_PENDING_PER_CONVERTER) { converter = converters[0]; }
+        }
+    }
+
+    // Still no converter for us to use...
+    if (converter == null) {
+        console.log("Error: no converters available");
+        _converters.forEach((converter) => {
+            console.log(`  Converter #${ converter.id }: ${ converter.length() }`);
+        });
+        throw new Error("no converters available");
+    }
+
+    // Queue the request for a converter
+    return new Promise((resolve, reject) => {
+        converter.queue(resolve, reject);
+    });
+}
 
 // @TODO: Make this more fun and dynamic.
 function getDescription(name) {
@@ -98,8 +173,7 @@ function getDescription(name) {
 
 async function getJson(tokenId) {
     let traits = await TakoyakiContract.getTraits("0x" + tokenId);
-
-    if (traits.genes.state !== 5) { return null; }
+    if (traits.state !== 5) { return null; }
 
     // @TODO: detect any Japanese character and use a Japanese description
 
@@ -132,17 +206,57 @@ function escapeHtml(text, extra) {
     return text;
 }
 
+const DayNames = Object.freeze(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const MonthNames = Object.freeze(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+
+function getDateHeader(date) {
+    function pad(value) {
+        value = "00" + String(value);
+        return value.substring(value.length - 2);
+    }
+
+    if (!date) { date = new Date(); }
+
+    return (
+        DayNames[date.getUTCDay()] + ", " +
+        pad(date.getUTCDate()) + " " + MonthNames[date.getUTCMonth()] + " " + date.getUTCFullYear() + " " +
+        [pad(date.getUTCHours()), pad(date.getUTCMinutes()), pad(date.getUTCSeconds())].join(":") + " " +
+        "GMT"
+    );
+}
+
+function sha256(content) {
+    return crypto.createHash("sha256").update(content).digest("hex");
+}
+
 function getOpenGraph(name) {
+    const imageUrl = `https://takoyaki.cafe/profile/${ Buffer.from(name).toString("hex") }/`;
+    const description = escapeHtml(getDescription(name), '"');
+
     let result = [ ];
+
+    // Open Graph Info
     result.push(`<meta property="og:title" content="${ escapeHtml(name, '"') }" />`);
     result.push(`<meta property="og:type" content="website" />`);
-    result.push(`<meta property="og:description" content="${ escapeHtml(getDescription(name), '"') }" />`);
+    result.push(`<meta property="og:description" content="${ description }" />`);
     result.push(`<meta property="og:url" content="${ takoyaki.labelToUrl(name) }" />`);
+
+    // Open Graph Image
+    result.push(`<meta property="og:image" content="${ imageUrl }" />`);
     result.push(`<meta property="og:image:alt" content="Takoyaki: a pancake octopus ball" />`);
-    result.push(`<meta property="og:image:url" content="https://takoyaki.cafe/profile/${ Buffer.from(name).toString("hex") }" />`);
+    result.push(`<meta property="og:image:url" content="${ imageUrl }" />`);
     result.push(`<meta property="og:image:type" content="${ ContentTypes.PNG }" />`);
     result.push(`<meta property="og:image:height" content="600" />`);
     result.push(`<meta property="og:image:width" content="600" />`);
+
+    // TWitter Card
+    result.push(`<meta property="twitter:title" content="${ escapeHtml(name, '"') }" />`);
+    result.push(`<meta property="twitter:card" content="summary" />`);
+    result.push(`<meta property="twitter:description" content="${ description }" />`);
+    result.push(`<meta property="twitter:site" content="@TakoyakiNFT" />`);
+    result.push(`<meta property="twitter:image" content="${ imageUrl }" />`);
+    result.push(`<meta property="twitter:image:alt" content="Takoyaki: a pancake octopus ball" />`);
+
     return result.join("\n    ");
 }
 
@@ -150,6 +264,7 @@ function getOpenGraph(name) {
 function handler(request, response) {
     function send(body, contentType, extraHeaders) {
         let headers = {
+            "Date": getDateHeader(),
             "Server": Server,
         };
 
@@ -169,6 +284,7 @@ function handler(request, response) {
             let length = ((typeof(body) === "string") ? Buffer.byteLength(body): body.length);
             headers["Content-Length"] = length;
             headers["Content-Type"] = contentType;
+            headers["Etag"] = `"${ sha256(body) }"`;
         }
 
         Object.keys(extraHeaders || {}).forEach((key) => {
@@ -185,14 +301,16 @@ function handler(request, response) {
 
     function redirect(location) {
         response.writeHead(301, {
-            Server: Server,
-            Location: location
+            "Date": getDateHeader(),
+            "Server": Server,
+            "Location": location
         }, "Moved Permanently");
         response.end();
     }
 
     function sendError(code, reason) {
         response.writeHead(code, reason, {
+            "Date": getDateHeader(),
             "Server": Server
         });
         response.end();
@@ -202,6 +320,7 @@ function handler(request, response) {
     let host = request.headers.host.split(":")[0];
     let pathname = null;
     let query = { };
+    let queryText = "";
     let method = request.method;
 
     try {
@@ -209,24 +328,23 @@ function handler(request, response) {
         pathname = url.pathname.toLowerCase();
         if (pathname === "/") { pathname = "/index.html"; }
         if (url.query) {
+            queryText = "?" + url.query;
             query = queryParse(url.query);
         }
     } catch (error) {
         return sendError(400, 'Bad URL');
     }
 
-    console.log("Req:", host, pathname, query);
+    console.log("Req:", host, pathname, queryText);
 
-    /*
     if (method === "GET" && pathname === "/_debug") {
         return send(JSON.stringify({
             headers: request.headers,
             url: request.url,
             method: request.method,
-            rawHeaders: request.rawHeaders,
-        }), ContentTypes.JSON);
+            converterStats: getStats(),
+        }, null, 2), ContentTypes.TXT);
     }
-    */
 
 
     if (method === 'GET' || method === "HEAD") {
@@ -266,7 +384,7 @@ function handler(request, response) {
 
         // Redirect non-directory paths to the directory path
         if (match = pathname.match(/^\/(json|svg|png|profile)\/([0-9a-f_]+)$/)) {
-            return redirect(`/${ match[1] }/${ match[2] }/`);
+            return redirect(`/${ match[1] }/${ match[2] }/${ queryText }`);
 
         // Image
         // URL: https://takoyaki.cafe/svg/TOKENID/
@@ -314,9 +432,16 @@ function handler(request, response) {
                         return sendError(400, "Bad PNG Dimension");
                     }
 
-                    return getConverter().convert(svg, options).then((png) => {
-                        return send(png, ContentTypes.PNG, {
-                             "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+                    return getConverter().then((converter) => {
+                        converter.convert(svg, options).then((png) => {
+                            converter.done();
+                            return send(png, ContentTypes.PNG, {
+                                 "Content-Disposition": `inline; filename="takoyaki-${ filename }.png"`
+                            });
+                        }, (error) => {
+                            console.log(error);
+                            converter.done();
+                            return sendError(500, "Server Error");
                         });
                     }, (error) => {
                         console.log(error);
@@ -367,8 +492,15 @@ function handler(request, response) {
 
                 let svg = takoyaki.getSvg(json.takoyakiTraits, takoyaki.getLabelColor(name));
                 let options = { height: 600, width: 600 };
-                return getConverter().convert(svg, options).then((png) => {
-                    return send(png, ContentTypes.PNG, extraHeaders);
+                return getConverter().then((converter) => {
+                    converter.convert(svg, options).then((png) => {
+                        converter.done();
+                        return send(png, ContentTypes.PNG, extraHeaders);
+                    }, (error) => {
+                        console.log(error);
+                        converter.done();
+                        return sendError(500, "Server Error");
+                    })
                 }, (error) => {
                     console.log(error);
                     return sendError(500, "Server Error");
