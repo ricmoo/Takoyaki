@@ -343,7 +343,9 @@ function handler(request, response) {
             url: request.url,
             method: request.method,
             converterStats: getStats(),
-        }, null, 2), ContentTypes.TXT);
+        }, null, 2), ContentTypes.TXT, {
+            "Cache-Control": "no-cache"
+        });
     }
 
 
