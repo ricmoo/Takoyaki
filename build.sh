@@ -2,6 +2,7 @@
 
 # Create the flattened CSS
 python -c "import base64; spinner = base64.b64encode(file('./spinner.gif').read()); print file('./style.css').read().replace('./spinner.gif', 'data:image/gif;base64,' + spinner)" > ./heroku-app/static/style.css
+python -c "import base64; background = base64.b64encode(file('./background.jpg').read()); print file('./style-mobile.css').read().replace('./background.jpg', 'data:image/jpeg;base64,' + background)" > ./heroku-app/static/style-mobile.css
 
 # Copy minified scripts
 cp ./node_modules/ethers/dist/ethers.min.js ./heroku-app/static/ethers.js

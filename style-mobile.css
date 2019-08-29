@@ -1,0 +1,47 @@
+body {
+    position: relative;
+}
+
+.background {
+    background: url(./background.jpg);
+    background-size: contain;
+    width: 700px;
+    height: 500px;
+    position: absolute;
+}
+
+.background.top {
+    background-position: bottom;
+    margin-top: -680px;
+    top: 50%;
+}
+
+.background.bottom {
+    background-position: top;
+    bottom: 50%;
+    margin-bottom: -670px;
+}
+
+#background {
+    display: none;
+    height: 0;
+    width: 0;
+}
+
+#card {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    width: 100%;
+}
+
+.address {
+   font-size: 12px;
+}
+
+.icon {
+    height: 20px;
+    right: 15px;
+    width: 20px;
+}

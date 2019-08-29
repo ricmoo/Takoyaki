@@ -215,7 +215,8 @@ function getDateHeader(date) {
         return value.substring(value.length - 2);
     }
 
-    if (!date) { date = new Date(); }
+    if (date == null) { date = 0; }
+    if (typeof(date) === "number") { date = new Date(now() + date); }
 
     return (
         DayNames[date.getUTCDay()] + ", " +
@@ -282,7 +283,7 @@ function handler(request, response) {
         // Add the body and relevant headers
         if (body != null) {
             let length = ((typeof(body) === "string") ? Buffer.byteLength(body): body.length);
-            headers["Content-Length"] = length;
+            headers["Content-Length"] = String(length);
             headers["Content-Type"] = contentType;
             headers["Etag"] = `"${ sha256(body) }"`;
         }
@@ -291,7 +292,7 @@ function handler(request, response) {
             headers[key] = extraHeaders[key];
         });
 
-        response.writeHead(200, headers);
+        response.writeHead(200, "OK", headers);
         if (body != null && request.method !== "HEAD") {
             response.end(body);
         } else {
@@ -379,7 +380,8 @@ function handler(request, response) {
         // Static file from ./static
         // URL: https://takoyaki.cafe/FILENAME
         if (Static[pathname]) {
-            return send(Static[pathname], ContentTypes[pathname.toUpperCase().split(".")[1]] || "application/octet-stream");
+            const contentType = ContentTypes[pathname.toUpperCase().split(".")[1]] || "application/octet-stream";
+            return send(Static[pathname], contentType);
         }
 
         let match = null;

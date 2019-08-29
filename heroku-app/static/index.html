@@ -3,13 +3,15 @@
 
 <head>
     <title>Takoyaki!!!</title>
-    <link rel="stylesheet" href="https://takoyaki.cafe/style.css">
+    <link rel="stylesheet" href="https://takoyaki.cafe/style.css" />
+    <link rel="stylesheet" media="only screen and (max-width:700px)" href="https://takoyaki.cafe/style-mobile.css" />
     <meta charset="UTF-8">
     <!-- OpenGraph -->
 </head>
 
 <body>
     <div id="background"></div>
+    <div class="background top"></div>
     <div id="search">
         <div>
             <input id="input-search" placeholder="takoyaki-name" type="text">
@@ -193,6 +195,7 @@
         <div class="address" id="address"><div class="button" id="button-adopt"><div>Adopt me...</div></div>
             <!-- preserve space --></div>
     </div>
+    <div class="background bottom"></div>
     <input id="clipboard" />
 
     <script type="text/javascript" src="https://takoyaki.cafe/ethers.js"></script>
