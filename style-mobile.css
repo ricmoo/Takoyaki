@@ -12,14 +12,15 @@ body {
 
 .background.top {
     background-position: bottom;
-    margin-top: -490px;
+    margin-top: -500px;
     top: 50%;
 }
 
 .background.bottom {
     background-position: top;
-    bottom: 50%;
-    margin-bottom: -470px;
+    top: 50%;
+    margin-top: 170px;
+    dddmargin-bottom: -470px;
 }
 
 #background {
@@ -34,6 +35,11 @@ body {
     border: none;
     border-radius: 0;
     width: 100%;
+}
+
+#button-close {
+    top: 15px;
+    right: 10px;
 }
 
 #search {
@@ -53,4 +59,41 @@ body {
     height: 20px;
     right: 15px;
     width: 20px;
+}
+
+.about {
+    dddbackground: transparent;
+    border-radius: 0;
+    padding: 20px 24px;
+    overflow: hidden;
+}
+
+.about .background.overlay {
+    background-position: top;
+    margin-top: 170px;
+    left: 0;
+    top: 50%;
+}
+
+#card .about .title {
+    font-size: 20px;
+    font-weight: bold;
+    position: relative;
+}
+
+.about p {
+    position: relative;
+    margin: 12px 0;
+}
+
+.button-container {
+    margin-top: 0px;
+}
+
+.button.enabled:hover {
+    transform: translate(-50%, 0);
+}
+
+.about > div {
+   margin: 20px 0;
 }
