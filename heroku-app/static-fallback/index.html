@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Takoyaki!!!</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="https://takoyaki.cafe/style.css" />
+    <link rel="stylesheet" media="only screen and (max-width:700px)" href="https://takoyaki.cafe/style-mobile.css" />
+    <meta charset="UTF-8">
+    <!-- OpenGraph -->
+</head>
+
+<body>
+    <div id="background"></div>
+    <div class="background top"></div>
+    <div id="search">
+        <div>
+            <input id="input-search" placeholder="takoyaki-name" type="text">
+        </div>
+        <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
+        <div class="button-container">
+            <div id="search-warning"></div>
+            <div class="button" id="button-search">SEARCH</div>
+        </div>
+    </div>
+    <div id="card">
+        <div id="about" class="about hidden">
+            <div class="background overlay"></div>
+            <a href="#" id="button-close">&times;</a>
+            <div class="title">Adopting a Takoyaki</div>
+            <p>
+                When you adopt a Takoyaki, your contributions go towards supporting our various projects, such as
+                <a href="https://github.com/ethers-io/ethers.js/" target="_blank">ethers.js</a>,
+                <a href="https://takoyaki.cafe" target="_blank">Takoyaki</a>,
+                <a href="https://firefly.city" target="_blank">Firefly</a>,
+                <a href="https://meeseeks.app" target="_blank">Meeseeks</a> and our future random Ethereum ideas.
+            </p>
+            <p>
+                Each Takoyaki adoption includes a 1 year registration for your choosen ENS name, which will be the name of your random, newly
+                hatched Takoyaki non-fungible token, which you may continue to renew annually or transfer ownership of.
+            </p>
+            <!--
+            <p>
+                Follow us on
+                <a href="https://twitter.com/TakoyakiNFT/" target="_blank">Twitter</a>, or find out more on
+                <a href="https://github.com/ricmoo/Takoyaki/" target="_blank">GitHub</a>.
+            </p>
+            -->
+            <div id="about-no-ethereum" class="button-container hidden">
+                <a href="https://metamask.io/" target="_blank">
+                    <div class="button enabled metamask-logo">
+
+                        <div class="img"><img src="https://takoyaki.cafe/logo-metamask.svg" /></div>
+                        <div>Ethereum not detected...</div>
+                        <div class="small">(download MetaMask extension)</div>
+                    </div>
+                </a>
+            </div>
+            <div id="about-wrong-network" class="button-container hidden">
+                <div class="center">
+                    <b class="warning">Upsupported Network!</b><br />
+                    (Please select the <b><code>ROPSTEN</code></b> Ethereum network)
+                </div>
+            </div>
+            <div id="about-ok" class="button-container hidden">
+                <div class="button enabled" id="button-hatch">
+                    <div>Hatch
+                        <span id="populate-label" class="emphasis"></span>.takoyaki.eth</div>
+                    <div class="small">(and adopt for one year)</div>
+                </div>
+            </div>
+        </div>
+        <div class="title" id="label"></div>
+        <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
+        <div class="takoyaki" id="takoyaki"></div>
+        <div class="icon hidden" id="icon-copy">
+            <div class="info" id="info-copy">copy?</div>
+            <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+                <path style="fill: #000000" d="M457.8,198.6l-0.1-0.2l-0.2-0.2c-0.1-0.1-0.1-0.1-0.1-0.1l-91.7-91.7l0,0c-2.1-2.1-4.9-3.4-8.1-3.4H171 c-17.3,0-31.2,14-31.2,31.2v332.7c0,17.3,14,31.2,31.2,31.2h258.4c17.3,0,31.2-14,31.2-31.2V206.1 C460.7,203.2,459.5,200.6,457.8,198.6z M355,142.8l65.5,65.4H355V142.8z M427.4,464.7H173V241.6V136h149v105.6h105.5V464.7z " />
+                <path style="fill: #000000" d="M89.5,375.9c9.2,0,16.6,7.5,16.6,16.6c0,0,0,0.1,0,0.1h0l0,0c-0.1,9.1-7.5,16.5-16.6,16.5h-7 c-17.3,0-31.2-14-31.2-31.2V45.2C51.3,28,65.3,14,82.5,14H269c3.2,0,6,1.3,8,3.4l0.1,0c8,8,16.1,16.1,24.1,24.1 c-0.1,0.1-0.1,0.1-0.1,0.1c6.1,6.6,5.9,16.8-0.2,23c-6.4,6.5-17.1,6.5-23.7-0.2c-5.8-5.8-11.6-11.6-17.4-17.4 c-58.4,0-116.8,0-175.2,0v105.6v223.1H89.5L89.5,375.9z " />
+            </svg>
+        </div>
+        <!-- This div is "pre"; so be careful when modifying its contents -->
+        <div class="address" id="address"><div class="button" id="button-adopt"><div>Adopt me...</div></div>
+            <!-- preserve space --></div>
+    </div>
+    <div class="background bottom"></div>
+    <input id="clipboard" />
+
+    <script type="text/javascript" src="https://takoyaki.cafe/ethers.js"></script>
+    <script type="text/javascript" src="https://takoyaki.cafe/takoyaki.js"></script>
+    <script type="text/javascript" src="https://takoyaki.cafe/history.js"></script>
+    <script type="text/javascript" src="https://takoyaki.cafe/script.js"></script>
+</body>
+
+</html>

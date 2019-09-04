@@ -12,3 +12,9 @@ npx uglifyjs ./script.js --output ./heroku-app/static/script.js
 # Copy HTML and other static files
 cp ./history.js ./index.html ./logo-metamask.svg ./heroku-app/static/
 
+# Prepare a copy for the fallback edge cache servers, which is served in
+# the event the Heroku app is down. The only difference with serving from
+# the edge cache is that OpenGraph will not be populated.
+cp ./heroku-app/static/* ./heroku-app/static-fallback/
+sed -E -e 's/data:prod="-" ([a-z]+)="([^"]+)\//\1="https:\/\/takoyaki.cafe\//g' -i .tmp ./heroku-app/static-fallback/index.html
+rm ./heroku-app/static-fallback/index.html.tmp
