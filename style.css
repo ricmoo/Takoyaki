@@ -246,16 +246,25 @@ body.animated #background .tile div.highlight {
 }
 
 .button.metamask-logo .img {
-    height: 50px;
-    left: 30px;
+    height: 45px;
+    left: 32px;
     position: absolute;
     transform: translate(-50%, -50%);
     top: 50%;
-    width: 50px;
+    width: 45px;
+}
+
+.button.metamask-logo .img img {
+   height: 100%;
+   width: 100%;
 }
 
 #search .button-container {
     padding: 40px 0;
+}
+
+.about .background.overlay {
+    display: none;
 }
 
 .about .button-container {

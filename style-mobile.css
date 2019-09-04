@@ -70,6 +70,7 @@ body {
 
 .about .background.overlay {
     background-position: top;
+    display: block;
     margin-top: 170px;
     left: 0;
     top: 50%;

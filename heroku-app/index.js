@@ -413,15 +413,19 @@ function handler(request, response) {
         // URL: https://LABEL.takoyaki.cafe/
         if (label) {
             if (pathname !== "/index.html") { return sendError(404, "Not Found"); }
-            let html = Static["/index.html"].replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
-            // Replace 'data:prod="-" src="./lib/foo/' => 'https://takoyaki.cafe/'
-            html = html.replace(/data:prod="-" ([a-z]+)="([^"]+)\//ig, (all, attr, value) => {
-                console.log(all, attr, value);
-                if (Local) {
-                    return `${ attr }="http://takyaki.local:5000/`;
-                }
-                return `${ attr }="https://takoyaki.cafe/`;
-            });
+
+            // We replace:
+            //  - The OpenGraph place-holder with the OpenGraph data
+            //  - References to static files to the bare domain to capitalize on browser caching
+            const html = Static["/index.html"]
+                         .replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)))
+                         .replace(/data:prod="-" ([a-z]+)="([^"]+)\//ig, (all, attr, value) => {
+                             if (Local) {
+                                 return `${ attr }="http://takoyaki.local:5000/`;
+                             }
+                             return `${ attr }="https://takoyaki.cafe/`;
+                         });
+
             return send(html, ContentTypes.HTML);
         }
 
