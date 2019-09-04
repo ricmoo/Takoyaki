@@ -342,13 +342,28 @@
 
         // Use a deterministic salt, so we can recalculate the same value as
         // long as we have the dust wallet
-        let salt = ethers.utils.keccak256(await dustWallet.signMessage(label + "foo"));
+        let salt = ethers.utils.keccak256(await dustWallet.signMessage("salt:" + label));
         hints.salt = salt;
 
         let txs = await takoyaki.getTransactions(label, owner, salt, dustWallet.address);
         console.log(txs);
 
+        // Sign the reveal transaction
+        let signedRevealTx = await dustWallet.signTransaction(txs.reveal);
+        console.log("Signed Reveal Transaction:", signedRevealTx);
+
+        // Send the transaction to the Takoyaki reveal service (encrypted)
+        try {
+            await Takoyaki.submitReveal(signedRevealTx);
+            console.log("Done");
+        } catch (error) {
+            console.log(error);
+            throw new Error("Could not submit to reveal service");
+        }
+
         let tx = null;
+
+        // Send the Commit transaction
         try {
             tx = await signer.sendTransaction(txs.commit);
         } catch (error) {
@@ -360,10 +375,12 @@
         hints.commitBlock = receipt.blockNumber;
         console.log("COMMITED", receipt.blockNumber);
 
+        // Wait for 4 blocks
         await tx.wait(4);
-        console.log("sending reveal");
 
-        tx = await dustWallet.sendTransaction(txs.reveal);
+        // Send the reveal transaction
+        console.log("Sending reveal...");
+        tx = await provider.sendTransaction(signedRevealTx);
         receipt = await tx.wait();
         hints.revealBlock = receipt.blockNumber;
 
