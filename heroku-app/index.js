@@ -27,6 +27,9 @@ const Port = (process.env.PORT || 5000);
 const Server = "takoyaki.cafe/0.0.2";
 const Domain = null; //"takoyaki";
 
+const Local = (process.env.LOCAL === "true");
+console.log("Local:", Local);
+
 const upload = (function() {
     const AWS = require("aws-sdk");
 
@@ -410,7 +413,15 @@ function handler(request, response) {
         // URL: https://LABEL.takoyaki.cafe/
         if (label) {
             if (pathname !== "/index.html") { return sendError(404, "Not Found"); }
-            const html = Static["/index.html"].replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
+            let html = Static["/index.html"].replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
+            // Replace 'data:prod="-" src="./lib/foo/' => 'https://takoyaki.cafe/'
+            html = html.replace(/data:prod="-" ([a-z]+)="([^"]+)\//ig, (all, attr, value) => {
+                console.log(all, attr, value);
+                if (Local) {
+                    return `${ attr }="http://takyaki.local:5000/`;
+                }
+                return `${ attr }="https://takoyaki.cafe/`;
+            });
             return send(html, ContentTypes.HTML);
         }
 

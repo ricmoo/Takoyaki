@@ -11,8 +11,8 @@ npx uglifyjs ./script.js --output ./heroku-app/static/script.js
 
 # Copy HTML and modify it to point external files to https://takoyaki.cafe/ (better caching)
 cp ./index.html ./heroku-app/static/index.html
-sed -E -e 's/data:prod="-" ([a-z]+)="([^"]+)\//\1="https:\/\/takoyaki.cafe\//g' -i .tmp ./heroku-app/static/index.html
-rm ./heroku-app/static/index.html.tmp
+#sed -E -e 's/data:prod="-" ([a-z]+)="([^"]+)\//\1="https:\/\/takoyaki.cafe\//g' -i .tmp ./heroku-app/static/index.html
+#rm ./heroku-app/static/index.html.tmp
 
 cp ./history.js ./heroku-app/static/history.js
 

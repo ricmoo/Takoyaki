@@ -6,7 +6,7 @@
     "deploy-heroku": "git subtree push --prefix heroku-app heroku master",
     "deploy-heroku-force": "git push heroku `git subtree split --prefix heroku-app  master`:master --force",
     "setup-heroku": "heroku git:remote -a takoyaki-nft",
-    "local": "cd heroku-app && heroku local web",
+    "local": "./build.sh && cd heroku-app && heroku local web",
     "flatten": "meeseeks flatten index.html > dist/index.html",
     "dist": "./build.sh",
     "test": "mocha --timeout 600000 tests/test"
