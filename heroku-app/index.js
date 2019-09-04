@@ -24,16 +24,57 @@ const Static = (function() {
 })();
 
 const Port = (process.env.PORT || 5000);
-const Server = "takoyaki.cafe/0.0.1";
+const Server = "takoyaki.cafe/0.0.2";
 const Domain = null; //"takoyaki";
 
+const upload = (function() {
+    const AWS = require("aws-sdk");
+
+    AWS.config.credentials = new AWS.Credentials(
+        process.env.REVEAL_ACCESS_KEY_ID,
+        process.env.REVEAL_SECRET_ACCESS_KEY
+    );
+
+    const s3 = new AWS.S3();
+
+    const RevealBucket = process.env.REVEAL_BUCKET;
+
+    return function(content) {
+        const dataLength = ethers.utils.hexDataLength(content);
+        if (typeof(content) !== "string" || dataLength == null || dataLength > 480) {
+            return Promise.reject(new Error("invalid content"));
+        }
+
+        const hash = ethers.utils.keccak256(content);
+
+        return new Promise((resolve, reject) => {
+            Provider.getBlockNumber().then((blockNumber) => {
+                const params = {
+                    ACL: "private",
+                    Body: hash,
+                    Bucket: RevealBucket,
+                    ContentType: "text/plain",
+                    Key: `commit/${ Network }/${ blockNumber }/${ content.substring(2) }.txt`
+                };
+
+                s3.putObject(params, function(error, data) {
+                    if (error) { return reject(error); }
+                    return resolve(hash);
+                });
+            }, (error) => {
+                reject(error);
+            });
+        });
+    }
+})();
+
+const Network = (process.env.NETWORK || "ropsten");
 const Provider = (function() {
     const ProviderOptions = {
         infura: "ec7f689b45f148f899533b26547e4276",
         etherscan: undefined
     };
-//    return ethers.getDefaultProvider(process.env.NETWORK || "homestead");
-    return ethers.getDefaultProvider(process.env.NETWORK || "ropsten");
+    return ethers.getDefaultProvider(Network);
 })();
 
 const TakoyakiContract = takoyaki.connect(Provider);
@@ -206,8 +247,8 @@ function escapeHtml(text, extra) {
     return text;
 }
 
-const DayNames = Object.freeze(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
-const MonthNames = Object.freeze(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+const DayNames = Object.freeze([ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" ]);
+const MonthNames = Object.freeze([ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ]);
 
 function getDateHeader(date) {
     function pad(value) {
@@ -224,10 +265,6 @@ function getDateHeader(date) {
         [pad(date.getUTCHours()), pad(date.getUTCMinutes()), pad(date.getUTCSeconds())].join(":") + " " +
         "GMT"
     );
-}
-
-function sha256(content) {
-    return crypto.createHash("sha256").update(content).digest("hex");
 }
 
 function getOpenGraph(name) {
@@ -285,7 +322,7 @@ function handler(request, response) {
             let length = ((typeof(body) === "string") ? Buffer.byteLength(body): body.length);
             headers["Content-Length"] = String(length);
             headers["Content-Type"] = contentType;
-            headers["Etag"] = `"${ sha256(body) }"`;
+            headers["Etag"] = `"${ ethers.utils.sha256(Buffer.from(body)).substring(2) }"`;
         }
 
         Object.keys(extraHeaders || {}).forEach((key) => {
@@ -481,7 +518,7 @@ function handler(request, response) {
             let name = takoyaki.normalizeLabel(Buffer.from(match[1], "hex").toString());
 
             let extraHeaders = {
-                "Content-Disposition": `inline; filename="takoyaki-${ ethers.utils.id(name).substring(0, 10) }.png"`
+                "Content-Disposition": `inline; filename="takoyaki-${ ethers.utils.id(name).substring(2, 12) }.png"`
             };
 
             return getJson(ethers.utils.id(name).substring(2)).then((json) => {
@@ -513,6 +550,20 @@ function handler(request, response) {
                 console.log(error);
                 return sendError(500, "Server Error");
             });
+
+        } else if (match = pathname.match(/^\/reveal\/(([0-9a-f][0-9a-f])*)\/$/)) {
+            const reveal = match[1];
+            upload("0x" + reveal).then((hash) => {
+                return send(JSON.stringify({ success: true, hash: hash }), ContentTypes.JSON, {
+                    "Cache-Control": "no-cache"
+                });
+            }, (error) => {
+                console.log(error);
+                return send(JSON.stringify({ success: false, error: "unknown error" }), ContentTypes.JSON, {
+                    "Cache-Control": "no-cache"
+                });
+            });
+
 
         } else {
             return sendError(404, 'Not Found');
