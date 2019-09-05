@@ -674,6 +674,20 @@ describe("ERC-721 Operations", function() {
         assert.equal(owner, signer.address, `${ensName} owner is not buyer`);
     });
 
+    it('tokenURI should fail for expired token', async function() {
+        this.timeout(0);
+        const label = "winterfell";
+        const ensName = `${label}.takoyaki.eth`;
+
+        const receipt = await Takoyaki.register(provider, signer, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        return assert.rejects(takoyakiContract.functions.tokenURI(tokenId));
+    });
+
     it("can safeTransfer without data", async function() {
         const receipt = await Takoyaki.register(provider, signer, "transfer");
         const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
