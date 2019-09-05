@@ -645,7 +645,7 @@ describe("ERC-721 Operations", function() {
     });
 
     it(`can register with correct tokenURI`, async function() {
-        const uriPrefix = "https://takoyaki.nftmd.com/json/";
+        const uriPrefix = "https://takoyaki.cafe/json/";
         const label = "zelda";
         const ensName = `${label}.takoyaki.eth`;
 
