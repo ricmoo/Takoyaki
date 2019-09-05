@@ -352,6 +352,7 @@ describe("Commits and reveals", function() {
         const receipt1 = await Takoyaki.register(provider, signer1, label);
 
         await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+        await provider.mineBlocks(1);
 
         const signer2 = await provider.createSigner("0.22");
         return assert.doesNotReject(Takoyaki.register(provider, signer2, label));
@@ -366,6 +367,7 @@ describe("Commits and reveals", function() {
         const receipt1 = await Takoyaki.register(provider, signer1, label);
 
         await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
 
         const signer2 = await provider.createSigner("0.22");
         return assert.rejects(Takoyaki.register(provider, signer2, label), {
@@ -394,6 +396,90 @@ describe("Renew registration", function() {
       `expect status to be 2 but got ${token.status}`
     );
   });
+
+  it("cannot renew an invalid token", async function() {
+    const signer = await provider.createSigner();
+    const takoyaki = Takoyaki.connect(signer);
+
+    const tokenId = ethers.utils.id("molecule");
+    const tx = await takoyaki.renew(tokenId, { value: ethers.utils.parseEther("0.1") });
+
+    return assert.rejects(tx.wait(), { code: 'CALL_EXCEPTION' }, "renew invalid token");
+  });
+
+  it("can renew expired token", async function() {
+    this.timeout(0);
+
+    const label = "tomato";
+    const signer = await provider.createSigner("2");
+    const receipt = await Takoyaki.register(provider, signer, label);
+
+    const takoyaki = Takoyaki.connect(signer);
+    const tokenId = Takoyaki.getTokenId(takoyaki, receipt);
+    const token = await takoyaki.getTakoyaki(tokenId);
+
+    // fast forward to expire token
+    await fastForward(REGISTRATION_PERIOD + 1);
+    await provider.mineBlocks(1);
+
+    const tx = await takoyaki.renew(tokenId, { value: ethers.utils.parseEther("0.1") });
+    const renewedReceipt = await tx.wait();
+
+    const renewedEvent = Takoyaki.getEvent(takoyaki, renewedReceipt, "Renewed");
+    assert.ok(renewedEvent);
+    assert.ok(renewedEvent.values.length === 3);
+
+    const newExpiry = token.expires + (REGISTRATION_PERIOD * 60);
+    assert.ok(renewedEvent.values[2] === newExpiry, "renew expiry");
+  });
+
+  it("cannot renew expired token past grace period", async function() {
+    this.timeout(0);
+
+    const label = "carrot";
+    const signer = await provider.createSigner("2");
+    const receipt = await Takoyaki.register(provider, signer, label);
+
+    const takoyaki = Takoyaki.connect(signer);
+    const tokenId = Takoyaki.getTokenId(takoyaki, receipt);
+
+    // fast forward to past grace period
+    await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+    await provider.mineBlocks(1);
+
+    const tx = await takoyaki.renew(tokenId, { value: ethers.utils.parseEther("0.1") });
+    return assert.rejects( tx.wait(), { code: 'CALL_EXCEPTION' }, "renew after grace period");
+  });
+
+  it("cannot renew more than 3 times in a row", async function() {
+    const label = "cherry";
+    const signer = await provider.createSigner("2");
+    const receipt = await Takoyaki.register(provider, signer, label);
+
+    const takoyaki = Takoyaki.connect(signer);
+    const tokenId = Takoyaki.getTokenId(takoyaki, receipt);
+
+    for(let i = 0; i < 2; i++ ) {
+       const tx = await takoyaki.renew(tokenId, { value: ethers.utils.parseEther("0.1") });
+       await tx.wait();
+    }
+
+    const tx = await takoyaki.renew(tokenId, { value: ethers.utils.parseEther("0.1") });
+    return assert.rejects( tx.wait(), { code: 'CALL_EXCEPTION' }, "renew after grace period");
+  });
+
+  it("cannot renew with different fee", async function() {
+    const label = "avocado";
+    const signer = await provider.createSigner("2");
+    const receipt = await Takoyaki.register(provider, signer, label);
+
+    const takoyaki = Takoyaki.connect(signer);
+    const tokenId = Takoyaki.getTokenId(takoyaki, receipt);
+
+    const fee = await takoyaki.fee(label);
+    const tx = await takoyaki.renew(tokenId, { value: fee.add(1) });
+    return assert.rejects( tx.wait(), { code: 'CALL_EXCEPTION' }, "renew fee");
+  });
 });
 
 describe("Destroy registration", function() {
@@ -420,6 +506,43 @@ describe("Destroy registration", function() {
       `expect status to be 0 but got ${token.status}`
     );
   });
+
+  it("cannot destroy an invalid token", async function() {
+    this.timeout(0);
+    const label = "heroku";
+    let signer = await provider.createSigner();
+
+    const takoyaki = Takoyaki.connect(signer);
+    const tokenId = ethers.utils.id(label);
+
+    // fast forward to past grace period
+    await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+    await provider.mineBlocks(1);
+
+    const tx = await takoyaki.destroy(tokenId);
+    return assert.rejects( tx.wait(),
+            { code: "CALL_EXCEPTION" }, "should throw destroying invalid token");
+
+  });
+
+  it("cannot destroy a token during grace period", async function() {
+    this.timeout(0);
+    const label = "spinning";
+    let signer = await provider.createSigner();
+
+    const takoyaki = Takoyaki.connect(signer);
+    const receipt = await Takoyaki.register(provider, signer, label);
+    const tokenId = Takoyaki.getTokenId(takoyaki, receipt);
+
+    // fast forward to past grace period
+    await fastForward(REGISTRATION_PERIOD + 1);
+    await provider.mineBlocks(1);
+
+    const tx = await takoyaki.destroy(tokenId);
+    return assert.rejects(tx.wait(),
+            { code: "CALL_EXCEPTION" }, "should throw destroying token during grace period");
+
+   });
 });
 
 describe("syncUpkeepFee()", function() {
@@ -460,6 +583,7 @@ describe("syncUpkeepFee()", function() {
         const originalFee = await takoyakiContract.getTakoyaki(tokenId).then(token => token.upkeepFee);
 
         await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
 
         await assert.rejects(Takoyaki.syncUpkeepFee(admin, admin, tokenId),
             { code: "CALL_EXCEPTION" }, "Sync fee should fail");
@@ -674,6 +798,20 @@ describe("ERC-721 Operations", function() {
         assert.equal(owner, signer.address, `${ensName} owner is not buyer`);
     });
 
+    it('tokenURI should fail for expired token', async function() {
+        this.timeout(0);
+        const label = "winterfell";
+        const ensName = `${label}.takoyaki.eth`;
+
+        const receipt = await Takoyaki.register(provider, signer, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        return assert.rejects(takoyakiContract.functions.tokenURI(tokenId));
+    });
+
     it("can safeTransfer without data", async function() {
         const receipt = await Takoyaki.register(provider, signer, "transfer");
         const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
@@ -706,13 +844,55 @@ describe("ERC-721 Operations", function() {
         const receipt = await Takoyaki.register(provider, signer, "wrongOwner");
         const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
 
-        return assert.rejects(Takoyaki.safeTransfer(newOwner, newOwner, wallet, tokenId),
+        return assert.rejects(Takoyaki.safeTransfer(signer, newOwner, wallet, tokenId),
             { code: "CALL_EXCEPTION" }, "safeTransfer with wrong owner should fail");
     });
 
-    it("getTakoyaki() during grace period should return status 1", async function() {
+    it("safeTransfer by approved operator", async function() {
+        const label = "rainbow";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        const takoyaki = Takoyaki.connect(owner);
+        const tx = await takoyaki.setApprovalForAll(signer.address, true);
+        await tx.wait();
+
+        await Takoyaki.safeTransfer(signer, owner, newOwner, tokenId);
+        const tokenOwner = await takoyakiContract.ownerOf(tokenId);
+        assert.equal(tokenOwner, newOwner.address);
+    });
+
+    it("safeTransfer expired token should throw", async function() {
         this.timeout(0);
 
+        const label = "hopeful";
+        const receipt = await Takoyaki.register(provider, signer, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        return assert.rejects(Takoyaki.safeTransfer(signer, signer, newOwner, tokenId),
+            { code: "CALL_EXCEPTION" }, "safeTransfer expired token should fail");
+    });
+
+    it("safeTransfer to 0 address should throw", async function() {
+        const label = "sunny";
+        const receipt = await Takoyaki.register(provider, signer, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        const nextOwner = { address: ethers.constants.AddressZero };
+        return assert.rejects(Takoyaki.safeTransfer(signer, signer, nextOwner, tokenId),
+            { code: "CALL_EXCEPTION" }, "safeTransfer expired token should fail");
+    });
+});
+
+describe("getTakoyaki", function() {
+    it("should return status 1 during grace period", async function() {
+        this.timeout(0);
+
+        const signer = await provider.createSigner();
         const receipt = await Takoyaki.register(provider, signer, "grace");
 
         // fast forward to grace period
@@ -722,6 +902,32 @@ describe("ERC-721 Operations", function() {
         const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
         const token = await takoyakiContract.getTakoyaki(tokenId);
         assert.equal(token.status, 1, "status should be in grace period");
+    });
+
+    it("should return status 2 before expiry", async function() {
+        const label = "morning";
+        const signer = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, signer, label);
+
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+        const token = await takoyakiContract.getTakoyaki(tokenId);
+        assert.equal(token.status, 2, "registered status 2");
+    });
+
+    it("should return status 0 if expired", async function() {
+        this.timeout(0);
+
+        const label = "awesome";
+        const signer = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, signer, label);
+
+        // fast forward to grace period
+        await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+        const token = await takoyakiContract.getTakoyaki(tokenId);
+        assert.equal(token.status, 0, "available status 0");
     });
 });
 
@@ -741,6 +947,84 @@ describe("Approval", function() {
         await tx.wait();
         approved = await takoyaki.getApproved(tokenId);
         assert.ok(approved === newOwner.address, "approved should equal to newOwner");
+     });
+
+     it("should fail for non-owner", async function() {
+        const label = "perfect";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        const nonOwner = await provider.createSigner();
+        const newOwner = await provider.createSigner();
+        const takoyaki = Takoyaki.connect(nonOwner);
+        const tx = await takoyaki.approve(newOwner.address, tokenId);
+        return assert.rejects(tx.wait(), { code: "CALL_EXCEPTION" }, "approved by non-owner");
+     });
+
+     it("should fail for expired token", async function() {
+        this.timeout(0);
+        const label = "flawless";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        const newOwner = await provider.createSigner();
+        const takoyaki = Takoyaki.connect(owner);
+
+        const tx = await takoyaki.approve(newOwner.address, tokenId);
+        return assert.rejects(tx.wait(), { code: "CALL_EXCEPTION" }, "approve expired token");
+     });
+
+     it("should pass for approved non-owner", async function() {
+        const label = "impeccable";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        const operator = await provider.createSigner("2");
+        const signer = await provider.createSigner();
+
+        let takoyaki = Takoyaki.connect(owner);
+        let tx = await takoyaki.setApprovalForAll(signer.address, true);
+        await tx.wait();
+
+        takoyaki = Takoyaki.connect(signer);
+        tx = await takoyaki.approve(operator.address, tokenId);
+        const approveReceipt = await tx.wait();
+
+        const approved = await takoyaki.getApproved(tokenId);
+        assert.ok(approved === operator.address, "approved should equal operator");
+
+        const approvalEvent = Takoyaki.getEvent(takoyaki, approveReceipt, "Approval");
+        assert.ok(approvalEvent);
+        assert.ok(approvalEvent.values.length === 3);
+        assert.ok(approvalEvent.values[1] === operator.address);
+     });
+
+     it("should fail to get approved info for expired token", async function() {
+        this.timeout(0);
+        const label = "immaculate";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        const operator = await provider.createSigner();
+        const takoyaki = Takoyaki.connect(owner);
+
+        let tx = await takoyaki.approve(operator.address, tokenId);
+        await tx.wait();
+
+        const approved = await takoyakiContract.getApproved(tokenId);
+        assert.ok(approved === operator.address);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        return assert.rejects(takoyakiContract.getApproved(tokenId));
      });
 });
 
@@ -798,10 +1082,42 @@ describe("Reclaim", function() {
         const newOwner = await provider.createSigner();
 
         await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+        await provider.mineBlocks(1);
 
         const tx = await takoyaki.reclaim(tokenId, newOwner.address);
         return assert.rejects(tx.wait(), { code: "CALL_EXCEPTION" }, "reclaim should fail for non-owner");
 
+    });
+});
+
+describe("ownerOf", function() {
+    it("happy path", async function() {
+        const label = "beauty";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+        const tokenOwner = await takoyakiContract.ownerOf(tokenId);
+        assert.ok(tokenOwner === owner.address);
+    });
+
+    it("should fail for invalid token", function() {
+        const label = "bahamas";
+        const tokenId = ethers.utils.id(label);
+        return assert.rejects(takoyakiContract.ownerOf(tokenId));
+    });
+
+    it("should fail if token has expired", async function() {
+        this.timeout(0);
+
+        const label = "beach";
+        const owner = await provider.createSigner();
+        const receipt = await Takoyaki.register(provider, owner, label);
+        const tokenId = Takoyaki.getTokenId(takoyakiContract, receipt);
+
+        await fastForward(REGISTRATION_PERIOD + 1);
+        await provider.mineBlocks(1);
+
+        return assert.rejects( takoyakiContract.ownerOf(tokenId) );
     });
 });
 
@@ -878,6 +1194,7 @@ describe("balanceOf", function() {
 
         // fast forward to past grace period
         await fastForward(REGISTRATION_PERIOD + GRACE_PERIOD + 1);
+        await provider.mineBlocks(1);
 
         const balance = await takoyakiContract.balanceOf(signer.address);
         assert.ok(balance.eq(2), "balanceOf should equal 2");
