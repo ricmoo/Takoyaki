@@ -1,56 +1,16 @@
 "use strict";
 
-const inherits = require("inherits");
+import { toASCII, toUnicode } from "punycode";
 
-const { toASCII, toUnicode } = require("punycode");
+import aes from "aes-js";
+import { BigNumber, constants, Contract, ContractInterface, providers, Signer, utils } from "ethers";
 
-const AES = require("aes-js");
-const { constants, Contract, utils } = require("ethers");
-
-const SVG = require("./asset");
-const { Random } = require("./random");
-const { parse } = require("./svg-parser");
+import { svg as SVG } from "./asset";
+import { Random } from "./random";
+import { parse, SvgDocument, SvgNode } from "./svg-parser";
 
 const Takoyaki = parse(SVG);
 const _random = new Random("0x");
-
-function getNow() { return (new Date()).getTime(); }
-
-function Cache(cacheSize) {
-    this._cacheSize = cacheSize;
-    this._values = { };
-    let prunner = setInterval(() => { this.prune(); });
-    if (prunner.unref) { prunner.unref(); }
-}
-
-Cache.prototype.prune = function() {
-    let ordered = Object.keys(this._values);
-    if (ordered.length < this._cacheSize) { return; }
-
-    ordered.sort((a, b) => (a.t - b.t));
-
-    // Prune out old entries
-    let now = getNow();
-    ordered.slice(this._cacheSize).then((key) => {
-        // Don't delete anything less than 10s old, we may still need it
-        if (now - this._values.t < 10000) { return; }
-        delete this._values[key];
-    });
-}
-
-Cache.prototype.set = function(key, value) {
-    this._values[String(key)] = { v: value, t: getNow() }
-}
-
-Cache.prototype.get = function(key) {
-    let value = this._values[String(key)];
-    if (value == null) { return null; }
-    value.t = getNow();
-    return value.v;
-}
-
-// A 16k entry cache for blockNumber => blockHash
-const HashCache = new Cache(1 << 14);
 
 // States
 //   - 0 : Nothing revealed
@@ -74,7 +34,71 @@ const Count = {
     tattoo: 114
 }
 
-function _getTraits(genes) {
+export type State = "available" | "grace" | "owned";
+
+export type Genes = {
+    salt: string;
+    seeds: Array<string>;
+
+    generation?: number;
+
+    tokenId?: string;
+
+    commitBlock?: number;
+    revealBlock?: number;
+
+    name?: string;
+
+    expires?: number;
+    status?: State;
+    owner?: string;
+    upkeepFee?: BigNumber;
+};
+
+export type Traits = {
+    genes: Genes;
+
+    state: number;
+
+    eyes: number;
+
+    // Mouth with rotation and scale
+    mouth: number;
+    mouth_r: number;
+    mouth_s: number;
+
+    tattoo: number;
+    tattoo_d: number;
+    tattoo_a: number;
+    tattoo_r: number;
+    tattoo_c: string;
+
+    color1: number;
+    color2: number;
+
+    // The body color
+    body_c: string;
+
+    // The outside colors of the tentacles
+    tentacle1_outside_c: string;
+    tentacle2_outside_c: string;
+    tentacle3_outside_c: string;
+    tentacle4_outside_c: string;
+
+    // The inside colors of the middle tentacles (outside tentacles not used yet)
+    tentacle1_inside_c: string;
+    tentacle2_inside_c: string;
+    tentacle3_inside_c: string;
+    tentacle4_inside_c: string;
+
+    // The rotation of the tentacles
+    tentacle1_r: number;
+    tentacle2_r: number;
+    tentacle3_r: number;
+    tentacle4_r: number;
+};
+
+function _getTraits(genes: Genes): Traits {
     let state = 5;
     //if (!genes.commitBlock || !genes.seeds[0]) {
     if (!genes.seeds[0]) {
@@ -144,15 +168,13 @@ function _getTraits(genes) {
     };
 }
 
-function getLabelColor(label, sat, lum) {
+export function getLabelColor(label: string, sat?: number, lum?: number): string {
     if (sat == null) { sat = 90; }
     if (lum == null) { lum = 90; }
     return _random.color(label, 0, 360, sat, 0, lum, 0);
 }
 
-const _emptyCache = new Cache(1 << 5);
-
-function getTraits(genes) {
+export function getTraits(genes: Genes): Traits {
     if (!genes) {
         let rand = Random.random();
         genes = {
@@ -170,7 +192,7 @@ function getTraits(genes) {
     return _getTraits(genes);
 }
 
-function createList(prefix, count) {
+function createList(prefix: string, count: number): Array<string> {
     let result = [ ];
     for (let i = 1; i <= count; i++) {
         result.push(prefix + i);
@@ -178,7 +200,7 @@ function createList(prefix, count) {
     return result;
 }
 
-function show(document, ids, keepIndex) {
+function show(document: SvgDocument, ids: Array<string>, keepIndex: number): SvgNode {
     if (keepIndex == null) { keepIndex = -1; }
 
     let result = null;
@@ -199,14 +221,16 @@ function show(document, ids, keepIndex) {
     return result;
 }
 
-function setFill(node, fill) {
+function setFill(node: SvgNode, fill: string): void {
     (node.children || []).forEach((child) => {
-        child.attributes.style = `fill: ${ fill }`;
-        setFill(child, fill);
+        if (SvgNode.isNode(child)) {
+            child.attributes.style = `fill: ${ fill }`;
+            setFill(child, fill);
+        }
     });
 }
 
-function getSvg(traits, backgroundColor) {
+export function getSvg(traits: Traits, backgroundColor?: string): string {
     let document = Takoyaki.clone();
 
     // Show only the valid part of the shell (possibly none)
@@ -218,7 +242,7 @@ function getSvg(traits, backgroundColor) {
     // Fix the clipping path (Adobe Illustrator and SVG don't seem
     // to agree on how to do this);
     let clipping = document.getElementById("body-2-clip_1_");
-    clipping.children[0].attributes["xlink:href"] = "#body-2-clip";
+    (<SvgNode>(clipping.children[0])).attributes["xlink:href"] = "#body-2-clip";
 
     // Eyes
     show(document, createList("eyes-", Count.eyes), traits.eyes);
@@ -259,7 +283,7 @@ function getSvg(traits, backgroundColor) {
         let dx = dist * Math.cos(traits.tattoo_a);
         let dy = dist * Math.sin(traits.tattoo_a);
 
-        let translate = ("translate(" + parseInt(dx) + "px, " + parseInt(dy) + "px)");
+        let translate = ("translate(" + parseInt(String(dx)) + "px, " + parseInt(String(dy)) + "px)");
         let rotate = ("rotate(" + (traits.tattoo_r - 15) + "deg)");
         let transform = translate + " " + rotate;
 
@@ -274,7 +298,7 @@ function getSvg(traits, backgroundColor) {
 
     // Set the tentacle colors and rotation
     createList("tentacle-", 4).forEach((id) => {
-        document.getElementById(id + "-c1").attributes.style = `fill: ${ traits[id.replace("-", "") + "_outside_c"] }`;
+        document.getElementById(id + "-c1").attributes.style = `fill: ${ (<any>traits)[id.replace("-", "") + "_outside_c"] }`;
 
         // The pivot point for the tentacle
         let tentacleBox = document.getElementById(id + "-box");
@@ -284,7 +308,7 @@ function getSvg(traits, backgroundColor) {
             parseInt(tentacleBox.attributes["cy"]) + "px"
         );
 
-        let rotate = ("rotate(" + (traits[id.replace("-", "") + "_r"]) + "deg)");
+        let rotate = ("rotate(" + ((<any>traits)[id.replace("-", "") + "_r"]) + "deg)");
 
         // Rotate the tentacle a little bit
         let style = `transform-origin: ${ transformOrigin }; transform: ${ rotate }`;
@@ -293,7 +317,7 @@ function getSvg(traits, backgroundColor) {
 
     // The inner color of the two middle tentacles
     ["tentacle-2", "tentacle-3"].forEach((id) => {
-        document.getElementById(id + "-c2").attributes.style = `fill: ${ traits[id.replace("-", "") + "_inside_c"] }`;
+        document.getElementById(id + "-c2").attributes.style = `fill: ${ (<any>traits)[id.replace("-", "") + "_inside_c"] }`;
     });
 
     // Optionally set a background color (otherwise transparent)
@@ -307,10 +331,10 @@ function getSvg(traits, backgroundColor) {
 }
 
 const RevealPublicKey = "0x02a9722b874612e4ef7282918bf05d55d6b2874eb2161ae5cebfb1b57058a89040";
-function submitReveal(signedTx) {
+export function submitReveal(signedTx: string): Promise<string> {
     const ephemeralKey = new utils.SigningKey(utils.randomBytes(32));
     const key = utils.keccak256(ephemeralKey.computeSharedSecret(RevealPublicKey));
-    const crypter = new AES.ModeOfOperation.ctr(utils.arrayify(key));
+    const crypter = new aes.ModeOfOperation.ctr(utils.arrayify(key));
     const reveal = utils.hexlify(utils.concat([
         "0x01",
         ephemeralKey.compressedPublicKey,
@@ -325,7 +349,38 @@ function submitReveal(signedTx) {
     });
 }
 
-function getTakoyakiUrl(tokenIdOrLabel) {
+function getDelta(date: number): string {
+    function pad(v: number): string {
+        let result = String(v);
+        while(result.length < 2) { result = "0" + result; }
+        return result;
+    }
+
+    let remaining = date - ((new Date()).getTime() / 1000);
+    let display = [];
+    let clump = 24 * 60 * 60
+    if (remaining > clump) {
+        let days = parseInt(String(remaining / clump))
+        remaining -= days * clump;
+        display.push(String(days) + "d");
+    }
+    clump = 60 * 60;
+    if (remaining > clump || display.length) {
+        let hours = parseInt(String(remaining / clump))
+        remaining -= hours * clump;
+        display.push(pad(hours) + "h");
+    }
+    clump = 60;
+    if (remaining > clump || display.length) {
+        let mins = parseInt(String(remaining / clump))
+        remaining -= mins * clump;
+        display.push(pad(mins) + "m");
+    }
+    display.push(pad(parseInt(String(remaining))) + "s");
+    return display.join(":");
+}
+
+export function getTakoyakiUrl(tokenIdOrLabel: string): string {
     if (tokenIdOrLabel.substring(0, 2) === "0x") {
         return "https://takoyaki.cafe/json/" + tokenIdOrLabel.substring(2);
     }
@@ -351,7 +406,7 @@ const ABI = [
     "function renew(uint256 tokenId) external payable @500000",
     "function ownerOf(uint256 tokenId) public view returns (address)",
     "function safeTransferFrom(address from, address to, uint256 tokenId) public @500000",
-    "function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public @500000",
+//    "function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public @500000",
     "function setAdmin(address newAdmin) external @275000",
     "function setApprovalForAll(address to, bool approved) external",
     "function isApprovedForAll(address owner, address operator) public view returns (bool)",
@@ -366,27 +421,68 @@ const ABI = [
     "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 ];
 
+// Maps a tokenId to its name (i.e. keccak256(id) => id)
+// This cache is not ever flushed, but this should not be
+// an issue unless Takoyaki becomes wildly popular and people
+// query a lot of them.
+const tokenIdCache: { [ tokenId: string ]: string } = { };
 
-function TakoyakiContract(address, ABI, signerOrProvider) {
-    Contract.call(this, address, ABI, signerOrProvider);
-}
-inherits(TakoyakiContract, Contract);
+export type Hints = {
+    blockNumber?: number;
+    name?: string;
+    salt?: string;
+    commitBlock?: number;
+    revealBlock?: number;
+};
 
-const inflightBlocks = { };
-TakoyakiContract.prototype.getTraits = function(tokenId, hints) {
-    // The hints are used when the caller knows info not available yet. For
-    // example, a buyer knows the name and may know the commit block before
-    // the reveal, at which point the name and commit block become public.
-    if (!hints) { hints = { }; }
+class TakoyakiContract extends Contract {
+    readonly decimals = 0;
+    readonly name = "Takoyaki";
+    readonly symbol = "TAKO";
 
-    return Promise.all([
-        Promise.resolve(hints.blockNumber || this.provider.getBlockNumber()),
-        this.functions.getTakoyaki(tokenId)
-    ]).then((results) => {
-        let blockNumber = results[0];
-        let traits = results[1];
+    _blockSeedCache: { [ blockTag: string ]: Promise<string> };
 
-        let genes = {
+    constructor(addressOrName: string, contractInterface: ContractInterface, signerOrProvider: Signer | providers.Provider) {
+        super(addressOrName, contractInterface, signerOrProvider);
+        this._blockSeedCache = { };
+    }
+
+    async _getBlockSeed(blockNumber: number, currentBlockNumber?: number): Promise<string> {
+        const blockTag = utils.hexValue(blockNumber);
+        if (this._blockSeedCache[blockTag]) {
+            return this._blockSeedCache[blockTag];
+        }
+
+        const blockPromise = this.provider.getBlock(blockTag);
+
+        // Only cache block hashes that are stable to prevent caching across re-orgs
+        if (currentBlockNumber && currentBlockNumber > blockNumber + 6) {
+            this._blockSeedCache[blockTag] = blockPromise.then((block) => {
+                return block.hash.substring(0, 14);
+            });
+            this._blockSeedCache[utils.hexValue(blockNumber - 1)] = blockPromise.then((block) => {
+                return block.parentHash.substring(0, 14);
+            });
+        }
+
+        const block = await blockPromise;
+
+        return block.hash.substring(0, 14);
+    }
+
+    async getTraits(tokenId: string, hints?: Hints): Promise<Traits> {
+
+        // The hints are used when the caller knows info not available yet. For
+        // example, a buyer knows the name and may know the commit block before
+        // the reveal, at which point the name and commit block become public.
+        if (!hints) { hints = { }; }
+
+        const { blockNumber, traits } = await utils.resolveProperties({
+            blockNumber: Promise.resolve(hints.blockNumber || this.provider.getBlockNumber()),
+            traits: this.functions.getTakoyaki(tokenId)
+        });
+
+        let genes: Genes = {
             generation: 0,
 
             tokenId: tokenId,
@@ -396,10 +492,10 @@ TakoyakiContract.prototype.getTraits = function(tokenId, hints) {
             revealBlock: traits.revealBlock,
             seeds: [ ],
 
-            name: (hints.name || null),
+            name: (hints.name || tokenIdCache[tokenId] || null),
 
             expires: traits.expires,
-            status: (["available", "grace", "owned"][traits.status]),
+            status: (<State>(["available", "grace", "owned"][traits.status])),
             owner: traits.owner,
             upkeepFee: traits.upkeepFee,
         };
@@ -407,125 +503,67 @@ TakoyakiContract.prototype.getTraits = function(tokenId, hints) {
         // Unowned; no need to load blocks
         if (genes.commitBlock === 0) { return _getTraits(genes); }
 
-        let addBlock = (blockNumber) => {
-            let key = String(blockNumber);
-
-            if (!inflightBlocks[key]) {
-                let promise = this.provider.getBlock(blockNumber).then((block) => {
-                    HashCache.set(block.number, block.hash.substring(0, 14));
-                    HashCache.set(block.number - 1, block.parentHash.substring(0, 14));
-                    if (inflightBlocks[key] === promise) { delete inflightBlocks[key]; }
-                }, (error) => {
-                    delete inflightBlocks[key];
-                });
-                inflightBlocks[key] = promise
-
-                setTimeout(() => {
-                    if (inflightBlocks[key] === promise) { delete inflightBlocks[key]; }
-                }, 4000);
-            }
-
-            return inflightBlocks[key];
-        };
-
-        let promises = [ ];
+        let promises: { [ key: string ]: Promise<any> } = { };
 
         if (!genes.name && genes.revealBlock) {
             let filter = this.filters.Registered(null, genes.tokenId);
-            promises.push(this.queryFilter(filter, genes.revealBlock, genes.revealBlock).then((events) => {
+            promises.name = this.queryFilter(filter, genes.revealBlock, genes.revealBlock).then((events) => {
                 events.forEach((event) => {
-                    genes.name = event.values[2];
+                    const name = event.values[2];
+                    if (utils.id(name) !== genes.tokenId) {
+                        console.log("WHAT?!", genes, event);
+                        return;
+                    }
+                    tokenIdCache[genes.tokenId] = name;
                 });
-            }));
-        }
-
-        if (genes.revealBlock) {
-            if (genes.revealBlock + 1 <= blockNumber && !HashCache.get(genes.revealBlock + 1)) {
-                promises.push(addBlock(genes.revealBlock + 1));
-            }
-
-            if (genes.revealBlock + 3 <= blockNumber && !HashCache.get(genes.revealBlock + 3)) {
-                promises.push(addBlock(genes.revealBlock + 3));
-            }
-
-            if (genes.revealBlock + 5 <= blockNumber && !HashCache.get(genes.revealBlock + 5)) {
-                promises.push(addBlock(genes.revealBlock + 5));
-            }
+            });
         }
 
         if (genes.commitBlock) {
-            if (genes.commitBlock + 1 <= blockNumber && !HashCache.get(genes.commitBlock + 1)) {
-                promises.push(addBlock(genes.commitBlock + 1));
+            if (genes.commitBlock + 1 <= blockNumber) {
+                promises.seed_c1 = this._getBlockSeed(genes.commitBlock + 1, blockNumber);
             }
 
-            if (genes.commitBlock + 3 <= blockNumber && !HashCache.get(genes.commitBlock + 3)) {
-                promises.push(addBlock(genes.commitBlock + 3));
+            if (genes.commitBlock + 3 <= blockNumber) {
+                promises.seed_c3 = this._getBlockSeed(genes.commitBlock + 3, blockNumber);
             }
         }
 
-        return Promise.all(promises).then(() => {
-            genes.seeds = [
-                HashCache.get(genes.commitBlock + 1),
-                HashCache.get(genes.commitBlock + 3),
-                HashCache.get(genes.revealBlock + 1),
-                HashCache.get(genes.revealBlock + 3),
-                HashCache.get(genes.revealBlock + 5),
-            ];
+        if (genes.revealBlock) {
+            if (genes.revealBlock + 1 <= blockNumber) {
+                promises.seed_r1 = this._getBlockSeed(genes.revealBlock + 1, blockNumber);
+            }
 
-            return _getTraits(genes);
+            if (genes.revealBlock + 3 <= blockNumber) {
+                promises.seed_r3 = this._getBlockSeed(genes.revealBlock + 3, blockNumber);
+            }
+
+            if (genes.revealBlock + 5 <= blockNumber) {
+                promises.seed_r5 = this._getBlockSeed(genes.revealBlock + 5, blockNumber);
+            }
+        }
+
+        let values = await utils.resolveProperties(promises);
+
+        genes.seeds = [
+            (values.seed_c1 || null),
+            (values.seed_c3 || null),
+            (values.seed_r1 || null),
+            (values.seed_r3 || null),
+            (values.seed_r5 || null),
+        ];
+
+        return _getTraits(genes);
+    }
+
+    async getTransactions(label: string, owner: string, salt: string, prefundRevealer: string): Promise<{ commit: string, reveal: string}> {
+        const { gasPrice, prefundBalance, fee, info, blindedCommitment } = await utils.resolveProperties({
+            gasPrice: this.provider.getGasPrice(),
+            prefundBalance: (prefundRevealer ? this.provider.getBalance(prefundRevealer): Promise.resolve(0)),
+            fee: this.functions.fee(label).catch((error) => { throw new Error('Invalid name')}),
+            info: this.functions.getTakoyaki(utils.id(label)),
+            blindedCommitment: this.functions.makeBlindedCommitment(label, owner, salt)
         });
-    });
-}
-/*
-TakoyakiContract.prototype.getTakoyaki = function(label) {
-    return this.functions.getTakoyaki(utils.id(label)).then((info) => {
-    });
-}
-*/
-function getDelta(date) {
-    function pad(v) {
-        v = String(v);
-        while(v.length < 2) { v = "0" + v; }
-        return v;
-    }
-
-    let remaining = date - ((new Date()).getTime() / 1000);
-    let display = [];
-    let clump = 24 * 60 * 60
-    if (remaining > clump) {
-        let days = parseInt(remaining / clump)
-        remaining -= days * clump;
-        display.push(String(days) + "d");
-    }
-    clump = 60 * 60;
-    if (remaining > clump || display.length) {
-        let hours = parseInt(remaining / clump)
-        remaining -= hours * clump;
-        display.push(pad(hours) + "h");
-    }
-    clump = 60;
-    if (remaining > clump || display.length) {
-        let mins = parseInt(remaining / clump)
-        remaining -= mins * clump;
-        display.push(pad(mins) + "m");
-    }
-    display.push(pad(parseInt(remaining)) + "s");
-    return display.join(":");
-}
-
-TakoyakiContract.prototype.getTransactions = function(label, owner, salt, prefundRevealer) {
-    return Promise.all([
-        this.provider.getGasPrice(),
-        (prefundRevealer ? this.provider.getBalance(prefundRevealer): Promise.resolve(0)),
-        this.functions.fee(label).catch((error) => { throw new Error('Invalid name (names must be 3 - 20 UTF-8 bytes long, and not begin with "0x")')}),
-        this.functions.getTakoyaki(utils.id(label)),
-        this.functions.makeBlindedCommitment(label, owner, salt)
-    ]).then((results) => {
-        let gasPrice = results[0];
-        let prefundBalance = results[1];
-        let fee = results[2];
-        let info = results[3];
-        let blindedCommitment = results[4];
 
         if (info.status !== 0) {
             throw new Error("Takoyaki is not available (expires in " + getDelta(info.expires) + ")");
@@ -546,74 +584,42 @@ TakoyakiContract.prototype.getTransactions = function(label, owner, salt, prefun
             prefundRevealer = constants.AddressZero;
         }
 
-        return Promise.all([
-            this.populateTransaction.commit(blindedCommitment, prefundRevealer, topUp, {
+        return utils.resolveProperties({
+            commit: this.populateTransaction.commit(blindedCommitment, prefundRevealer, topUp, {
                 gasPrice: gasPrice,
                 value: fee.add(topUp)
             }),
-            this.populateTransaction.reveal(label, owner, salt, {
+            reveal: this.populateTransaction.reveal(label, owner, salt, {
                 gasPrice: revealGasPrice
             })
-        ]).then((results) => {
-            return {
-                commit: results[0],
-                reveal: results[1]
-            };
         });
-    });
+    }
+
+    tokenURI(tokenId: string): string {
+        return getTakoyakiUrl(tokenId);
+    }
 }
 
 
-TakoyakiContract.prototype.commit = function(label, owner, salt, prefundRevealer, prefundAmount) {
-    if (prefundAmount == null) { prefundAmount = 0; }
-    let overrides = {
-       //gasLimit: 500000,
-       value: this.fee(label).then((fee) => fee.add(prefundAmount))
-    };
-    return this.functions.makeBlindedCommitment(label, owner, salt).then((blindedCommit) => {
-        return this.functions.commit(blindedCommit, prefundRevealer, prefundAmount, overrides);
-    });
+export function urlToLabel(url: string): string {
+    let comps = (url || "").split(".");
+    if (comps.length !== 3 || comps[1] !== "takoyaki") { return null; }
+    return toUnicode(comps[0]);
 }
 
-TakoyakiContract.prototype.reveal = function(label, owner, salt) {
-    // @TODO: Use getBlindedCommit to make sure this is not too early
-    return this.functions.reveal(label, owner, salt);
-};
-
-utils.defineReadOnly(TakoyakiContract.prototype, "decimals", 0);
-utils.defineReadOnly(TakoyakiContract.prototype, "name", "Takoyaki");
-utils.defineReadOnly(TakoyakiContract.prototype, "symbol", "TAKO");
-
-TakoyakiContract.prototype.tokenURI = function(tokenId) {
-    return getTakoyakiUrl(tokenId);
+export function labelToUrl(label: string, local?: boolean): string {
+    if (local) {
+        return "http://" + toASCII(label.toLowerCase()) + ".takoyaki.local:8000/";
+    }
+    return "https://" + toASCII(label.toLowerCase()) + ".takoyaki.cafe";
 }
 
-module.exports = {
-    SVG,
-
-    urlToLabel: function(url) {
-        let comps = (url || "").split(".");
-        if (comps.length !== 3 || comps[1] !== "takoyaki") { return null; }
-        return toUnicode(comps[0]);
-    },
-    labelToUrl: function(label, local) {
-        if (local) {
-            return "http://" + toASCII(label.toLowerCase()) + ".takoyaki.local:8000/";
-        }
-        return "https://" + toASCII(label.toLowerCase()) + ".takoyaki.cafe";
-    },
-
-    normalizeLabel: function(label) {
-        return toUnicode(toASCII(label.toLowerCase()));
-    },
-
-    connect: function(signerOrProvider) {
-        return new TakoyakiContract("takoyaki.eth", ABI, signerOrProvider);
-    },
-
-    getLabelColor,
-    getSvg,
-    getTakoyakiUrl: getTakoyakiUrl,
-    getTraits,
-    submitReveal,
+export function normalizeLabel(label: string): string {
+    return toUnicode(toASCII(label.toLowerCase()));
 }
+
+export function connect(signerOrProvider: Signer | providers.Provider): TakoyakiContract {
+    return new TakoyakiContract("takoyaki.eth", ABI, signerOrProvider);
+}
+
+

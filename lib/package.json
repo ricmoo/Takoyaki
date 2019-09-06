@@ -1,14 +1,16 @@
 {
   "name": "takoyaki",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "The Takoyaki NFT library.",
-  "main": "index.js",
+  "main": "./lib/index.js",
   "browser": {
     "ethers": "./ethers-browser.js"
   },
   "scripts": {
-    "dist": "node ./scripts/generate.js && browserify ./index.js --standalone Takoyaki --outfile ./dist/takoyaki.js && uglifyjs ./dist/takoyaki.js --output ./dist/takoyaki.min.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dist": "npm run build && node ./scripts/generate.js && tsc -p tsconfig.json && rollup -c && rollup -c --configMinify",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p ./tsconfig.json",
+    "auto-build": "npm run build -- -w"
   },
   "keywords": [
     "ethereum",
@@ -20,13 +22,14 @@
   "license": "MIT",
   "dependencies": {
     "aes-js": "3.0.0",
-    "ethers": ">=5.0.0-beta.153",
-    "inherits": "^2.0.4",
-    "punycode": "2.1.1"
+    "ethers": ">=5.0.0-beta.155",
+    "punycode": "2.1.1",
+    "rollup": "^1.20.3"
   },
   "devDependencies": {
-    "browserify": "^16.2.3",
-    "uglify-es": "^3.3.9"
+    "@types/node": "^12.7.4",
+    "uglify-es": "^3.3.9",
+    "typescript": "3.6.2"
   },
   "repository": {
     "type": "git",
