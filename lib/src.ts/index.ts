@@ -418,6 +418,8 @@ const ABI = [
     "function syncUpkeepFee(uint256 tokenId) external @500000",
     "function tokenURI(uint256 _tokenId) external view returns (string memory)",
     "function withdraw(uint256 amount) @100000",
+    "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
+    "event Renewed(address indexed owner, uint256 indexed tokenId, uint48 expires)",
     "event Cancelled(address indexed funder, bytes32 commitment)",
     "event Committed(address indexed funder, bytes32 commitment)",
     "event Registered(address indexed owner, uint256 indexed tokenId, string label, uint48 expires)",
