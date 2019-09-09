@@ -331,7 +331,7 @@ export function getSvg(traits: Traits, backgroundColor?: string): string {
 }
 
 const RevealPublicKey = "0x02a9722b874612e4ef7282918bf05d55d6b2874eb2161ae5cebfb1b57058a89040";
-export function submitReveal(signedTx: string): Promise<string> {
+export function submitReveal(signedTx: string, local?: boolean): Promise<string> {
     const ephemeralKey = new utils.SigningKey(utils.randomBytes(32));
     const key = utils.keccak256(ephemeralKey.computeSharedSecret(RevealPublicKey));
     const crypter = new aes.ModeOfOperation.ctr(utils.arrayify(key));
@@ -343,7 +343,10 @@ export function submitReveal(signedTx: string): Promise<string> {
         ])))
     ]));
 
-    return utils.fetchJson("http://takoyaki.local:5000/reveal/" + reveal.substring(2) + "/").then((result) => {
+    let url = "https://takoyaki.cafe/reveal/";
+    if (local) { url = "http://takoyaki.local:5000/reveal/"; }
+
+    return utils.fetchJson(url + reveal.substring(2) + "/").then((result) => {
         if (result.hash !== utils.keccak256(reveal)) { throw new Error("hash mismatch"); }
         return reveal;
     });

@@ -44,7 +44,7 @@ export declare type Traits = {
 export declare function getLabelColor(label: string, sat?: number, lum?: number): string;
 export declare function getTraits(genes: Genes): Traits;
 export declare function getSvg(traits: Traits, backgroundColor?: string): string;
-export declare function submitReveal(signedTx: string): Promise<string>;
+export declare function submitReveal(signedTx: string, local?: boolean): Promise<string>;
 export declare function getTakoyakiUrl(tokenIdOrLabel: string): string;
 export declare type Hints = {
     blockNumber?: number;
