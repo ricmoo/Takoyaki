@@ -10,7 +10,7 @@
 
 const fs = require("fs");
 
-const { compile } = require("@ethersproject/cli/solc");
+const { solc } = require("@ethersproject/cli");
 const { ethers } = require("ethers");
 
 function getAbi(fragment) {
@@ -46,7 +46,7 @@ function getAbi(fragment) {
 }
 
 (async function() {
-    let code = compile(fs.readFileSync("./contracts/TakoyakiRegistrar.sol").toString(), {
+    let code = solc.compile(fs.readFileSync("./contracts/TakoyakiRegistrar.sol").toString(), {
         optimize: true
     }).filter((c) => (c.name === "TakoyakiRegistrar"))[0];
     //console.dir(code, { depth: null });

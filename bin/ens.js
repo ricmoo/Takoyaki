@@ -5,9 +5,8 @@
 const { inherits } = require('util');
 const { ethers } = require('ethers');
 const utils = ethers.utils;
-const { CLI, dump, Plugin } = require('@ethersproject/cli/cli');
+const { cli: CLI, solc } = require('@ethersproject/cli');
 const fs = require('fs');
-const { compile } = require('@ethersproject/cli/solc');
 
 const MIN_REGISTRATION_DURATION_IN_DAYS = 28;
 const PERMANENT_REGISTRAR_ID = '0x018fac06';
@@ -39,16 +38,16 @@ const TAKOYAKI_ABI = [
   'function commit(bytes32 txPreimage) public payable returns (address)'
 ];
 
-const cli = new CLI();
+const cli = new CLI.CLI();
 
 function RegisterPlugin() {}
-inherits(RegisterPlugin, Plugin);
+inherits(RegisterPlugin, CLI.Plugin);
 
 function DeployPlugin() {}
-inherits(DeployPlugin, Plugin);
+inherits(DeployPlugin, CLI.Plugin);
 
 function SimulatePlugin() {}
-inherits(SimulatePlugin, Plugin);
+inherits(SimulatePlugin, CLI.Plugin);
 
 DeployPlugin.getHelp = function() {
   return {
@@ -58,7 +57,7 @@ DeployPlugin.getHelp = function() {
 };
 
 DeployPlugin.prototype.prepareArgs = async function(args) {
-  await Plugin.prototype.prepareArgs.call(this, args);
+  await CLI.Plugin.prototype.prepareArgs.call(this, args);
   if (args.length !== 1) {
     this.throwUsageError('deploy requires ENS_NAME');
   }
@@ -71,8 +70,8 @@ DeployPlugin.prototype.prepareArgs = async function(args) {
 };
 
 DeployPlugin.prototype.run = async function(a) {
-  await Plugin.prototype.run.call(this);
-  let code = compile(
+  await CLI.Plugin.prototype.run.call(this);
+  let code = solc.compile(
     fs.readFileSync('./contracts/TakoyakiRegistrar.sol').toString(),
     {
       optimize: true
@@ -106,7 +105,7 @@ SimulatePlugin.getHelp = function() {
 };
 
 SimulatePlugin.prototype.prepareArgs = async function(args) {
-  await Plugin.prototype.prepareArgs.call(this, args);
+  await CLI.Plugin.prototype.prepareArgs.call(this, args);
   if (args.length !== 2) {
     this.throwUsageError('simulate requires ENS_NAME and LABEL');
   }
@@ -166,7 +165,7 @@ const runSimulator = (round, simulator) => {
 };
 
 SimulatePlugin.prototype.run = async function(a) {
-  await Plugin.prototype.run.call(this);
+  await CLI.Plugin.prototype.run.call(this);
 
   this.timeout = 15000;
   this.chainId = await this.provider.getNetwork().then(n => n.chainId);
@@ -196,7 +195,7 @@ RegisterPlugin.getOptionHelp = function() {
 };
 
 RegisterPlugin.prototype.prepareOptions = async function(argParser) {
-  await Plugin.prototype.prepareOptions.call(this, argParser);
+  await CLI.Plugin.prototype.prepareOptions.call(this, argParser);
   this.ensOwner = argParser.consumeOption('owner');
 };
 
@@ -227,9 +226,9 @@ RegisterPlugin.prototype.prepareArgs = async function(args) {
     this.throwError('register requires an account');
   }
 
-  dump('ENS Name: ' + this.ensName, {});
-  dump('ENS Name Hash: ' + this.ensNameHash, {});
-  dump('duration(days): ' + this.durationInDays, {});
+  this.dump('ENS Name: ' + this.ensName, {});
+  this.dump('ENS Name Hash: ' + this.ensNameHash, {});
+  this.dump('duration(days): ' + this.durationInDays, {});
 
   if (this.durationInDays < MIN_REGISTRATION_DURATION_IN_DAYS) {
     this.throwError(
@@ -238,7 +237,7 @@ RegisterPlugin.prototype.prepareArgs = async function(args) {
   }
 
   this.duration = this.durationInDays * 24 * 3600;
-  dump('duration: ' + this.duration, {});
+  this.dump('duration: ' + this.duration, {});
 };
 
 const getRegistrarAddress = async (provider, name) => {
@@ -250,7 +249,7 @@ const getRegistrarAddress = async (provider, name) => {
   );
 
   const resolverAddress = await contract.resolver(namehash);
-  dump('resolver address: ' + resolverAddress, {});
+  this.dump('resolver address: ' + resolverAddress, {});
 
   if (resolverAddress === INVALID_ADDRESS) {
     throw new Error(
@@ -264,14 +263,14 @@ const getRegistrarAddress = async (provider, name) => {
     PERMANENT_REGISTRAR_ID
   );
 
-  dump('registrar address: ' + registrarAddress, {});
+  this.dump('registrar address: ' + registrarAddress, {});
   return registrarAddress;
 };
 
 RegisterPlugin.prototype.run = async function(a) {
-  await Plugin.prototype.run.call(this);
+  await CLI.Plugin.prototype.run.call(this);
 
-  dump('ENS address: ' + this.provider.network.ensAddress, {});
+  this.dump('ENS address: ' + this.provider.network.ensAddress, {});
 
   const registrarAddress = await getRegistrarAddress(
     this.provider,
@@ -302,17 +301,17 @@ RegisterPlugin.prototype.run = async function(a) {
   const owner = this.ensOwner
     ? this.ensOwner
     : await this.accounts[0].getAddress();
-  dump('ens owner: ' + owner, {});
+  this.dump('ens owner: ' + owner, {});
 
   const secret = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-  dump('secret: ' + secret, {});
+  this.dump('secret: ' + secret, {});
 
   const commitment = await contract.makeCommitment(
     this.ensLabel,
     owner,
     secret
   );
-  dump('commitment: ' + commitment, {});
+  this.dump('commitment: ' + commitment, {});
 
   const tx = await contract.commit(commitment);
   await tx.wait();
