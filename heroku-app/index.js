@@ -301,6 +301,14 @@ function getOpenGraph(name) {
     return result.join("\n    ");
 }
 
+function replaceLinks(content) {
+    return content.replace(/data:prod="-" ([a-z]+)="([^"]+)\//ig, (all, attr, value) => {
+        if (Local) {
+            return `${ attr }="http://takoyaki.local:5000/`;
+        }
+        return `${ attr }="https://takoyaki.cafe/`;
+    });
+}
 
 function handler(request, response) {
     function send(body, contentType, extraHeaders) {
@@ -417,23 +425,20 @@ function handler(request, response) {
             // We replace:
             //  - The OpenGraph place-holder with the OpenGraph data
             //  - References to static files to the bare domain to capitalize on browser caching
-            const html = Static["/index.html"]
-                         .replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)))
-                         .replace(/data:prod="-" ([a-z]+)="([^"]+)\//ig, (all, attr, value) => {
-                             if (Local) {
-                                 return `${ attr }="http://takoyaki.local:5000/`;
-                             }
-                             return `${ attr }="https://takoyaki.cafe/`;
-                         });
+            let content = Static["/index.html"];
+            content = content.replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
+            content = replaceLinks(content);
 
-            return send(html, ContentTypes.HTML);
+            return send(content, ContentTypes.HTML);
         }
 
         // Static file from ./static
         // URL: https://takoyaki.cafe/FILENAME
         if (Static[pathname]) {
             const contentType = ContentTypes[pathname.toUpperCase().split(".")[1]] || "application/octet-stream";
-            return send(Static[pathname], contentType);
+            let content = Static[pathname];
+            if (pathname === "/index.html") { content = replaceLinks(content); }
+            return send(content, contentType);
         }
 
         let match = null;

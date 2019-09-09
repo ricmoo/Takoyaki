@@ -11,7 +11,7 @@ body {
 }
 
 .background.top {
-    background-position: bottom;
+    background-position: right bottom;
     margin-top: -500px;
     top: 50%;
 }
