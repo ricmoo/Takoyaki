@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Create the flattened CSS
-python -c "import base64; spinner = base64.b64encode(file('./spinner.gif').read()); print file('./style.css').read().replace('./spinner.gif', 'data:image/gif;base64,' + spinner)" > ./heroku-app/static/style.css
-python -c "import base64; background = base64.b64encode(file('./background.jpg').read()); print file('./style-mobile.css').read().replace('./background.jpg', 'data:image/jpeg;base64,' + background)" > ./heroku-app/static/style-mobile.css
+python -c "import base64; spinner = base64.b64encode(file('./static/spinner.gif').read()); print file('./static/style.css').read().replace('./spinner.gif', 'data:image/gif;base64,' + spinner)" > ./heroku-app/static/style.css
+python -c "import base64; background = base64.b64encode(file('./static/background.jpg').read()); print file('./static/style-mobile.css').read().replace('./background.jpg', 'data:image/jpeg;base64,' + background)" > ./heroku-app/static/style-mobile.css
 
 # Copy minified scripts
-cp ./node_modules/ethers/dist/ethers.min.js ./heroku-app/static/ethers.js
-cp ./lib/dist/takoyaki.min.js ./heroku-app/static/takoyaki.js
-npx uglifyjs ./script.js --output ./heroku-app/static/script.js
+cp ./lib/node_modules/ethers/dist/ethers.umd.min.js ./heroku-app/static/
+cp ./lib/dist/takoyaki.umd.min.js ./heroku-app/static/
+npx terser ./static/script.js --output ./heroku-app/static/script.js
 
 # Copy HTML and other static files
-cp ./history.js ./index.html ./logo-metamask.svg ./heroku-app/static/
+cp ./index.html ./static/history.js ./static/logo-metamask.svg ./heroku-app/static/
 
 # Prepare a copy for the fallback edge cache servers, which is served in
 # the event the Heroku app is down. The only difference with serving from

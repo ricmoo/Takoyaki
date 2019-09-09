@@ -1,12 +1,11 @@
-(function () {
-
+(function() {
     function getSvg(traits) {
         return Takoyaki.getSvg(traits).replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
     }
 
     // Setup the background. Center tiles of Takoyaki across the entire
     // background, highlighting them randomly
-    (function () {
+    {
         const Background = document.getElementById("background");
 
         const Card = document.getElementById("card");
@@ -167,9 +166,9 @@
             SetTile[tile.id](genes.name, Takoyaki.getTraits(genes));
         }
         setInterval(highlight, 12000);
-    })();
+    }
 
-    (function() {
+    {
         const iconCopy = document.getElementById("icon-copy");
         const infoCopy = document.getElementById("info-copy");
         const input = document.getElementById("clipboard");
@@ -196,7 +195,7 @@
             }
             infoCopy.classList.add("highlight");
         };
-    })();
+    }
 
     // The label we are viewing (or "" for the root)
     // (for debugging, modify /etc/hosts to include LABEL.takoyaki.local and takoyaki.local)
@@ -343,7 +342,7 @@
         // Use a deterministic salt, so we can recalculate the same value as
         // long as we have the dust wallet
         let salt = ethers.utils.keccak256(await dustWallet.signMessage("salt:" + label));
-        hints.salt = salt;
+        hints.salt = ethers.utils.keccak256(ethers.utils.concat([ tokenId, salt ]));
 
         let txs = await takoyaki.getTransactions(label, owner, salt, dustWallet.address);
         console.log(txs);
@@ -355,7 +354,6 @@
         // Send the transaction to the Takoyaki reveal service (encrypted)
         try {
             await Takoyaki.submitReveal(signedRevealTx);
-            console.log("Done");
         } catch (error) {
             console.log(error);
             throw new Error("Could not submit to reveal service");
