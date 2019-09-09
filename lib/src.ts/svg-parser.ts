@@ -80,7 +80,7 @@ export class SvgNode implements NodeLike {
     }
 
     static isNode(value: any): value is SvgNode {
-        return (value instanceof Node);
+        return (value instanceof SvgNode);
     }
 }
 

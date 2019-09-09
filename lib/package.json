@@ -1,6 +1,6 @@
 {
   "name": "takoyaki",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "The Takoyaki NFT library.",
   "main": "./lib/index.js",
   "browser": {

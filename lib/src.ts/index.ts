@@ -513,6 +513,7 @@ class TakoyakiContract extends Contract {
         if (!genes.name && genes.revealBlock) {
             let filter = this.filters.Registered(null, genes.tokenId);
             promises.name = this.queryFilter(filter, genes.revealBlock, genes.revealBlock).then((events) => {
+                let result = null;
                 events.forEach((event) => {
                     const name = event.values[2];
                     if (utils.id(name) !== genes.tokenId) {
@@ -520,7 +521,9 @@ class TakoyakiContract extends Contract {
                         return;
                     }
                     tokenIdCache[genes.tokenId] = name;
+                    result = name;
                 });
+                return result;
             });
         }
 
@@ -549,6 +552,10 @@ class TakoyakiContract extends Contract {
         }
 
         let values = await utils.resolveProperties(promises);
+
+        if (values.name && !genes.name) {
+            genes.name = values.name;
+        }
 
         genes.seeds = [
             (values.seed_c1 || null),
