@@ -1,2 +1,7 @@
 assets/
 scripts/
+
+rollup.config.js
+
+src.ts/
+tsconfig.json
