@@ -283,7 +283,7 @@
         };
     })();
 
-    (function() {
+    {
         if (window.ethereum) {
             providerPromise.then((provider) => {
                 if (provider.getSigner == null) {
@@ -295,7 +295,21 @@
         } else {
             document.getElementById("about-no-ethereum").classList.remove("hidden");
         }
-    })();
+    }
+
+    {
+        const userAgentComps = [ ];
+        (navigator.userAgent || navigator.vendor || window.opera || "").replace(/([a-z0-9]+)/ig, function(all, word) {
+            userAgentComps.push(word.toLowerCase());
+            return "";
+        });
+
+        if (userAgentComps.join(" ").match(/(ios|iphone|ipad|ipod|android)/i)) {
+            const url = "https://metamask.app.link/dapp/" + location.host.split(":")[0] + "/"
+            console.log("Mobile Device: Set MetaMask link = " + url);
+            document.getElementById("link-metamask").setAttribute("href", url);
+        }
+    }
 
 
     const AdoptButton = document.getElementById("button-adopt");
