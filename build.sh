@@ -10,7 +10,7 @@ cp ./lib/dist/takoyaki.umd.min.js ./heroku-app/static/
 npx terser ./static/script.js --output ./heroku-app/static/script.js
 
 # Copy HTML and other static files
-cp ./index.html ./static/history.js ./static/logo-metamask.svg ./heroku-app/static/
+cp ./index.html ./static/favicon.ico ./static/history.js ./static/logo-metamask.svg ./heroku-app/static/
 
 # Prepare a copy for the fallback edge cache servers, which is served in
 # the event the Heroku app is down. The only difference with serving from

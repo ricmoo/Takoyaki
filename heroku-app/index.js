@@ -18,7 +18,7 @@ const ethers = require("ethers");
 const Static = (function() {
     let Static = { }
     fs.readdirSync("./static/").forEach((filename) => {
-        Static["/" + filename] = fs.readFileSync("./static/" + filename).toString();
+        Static["/" + filename] = fs.readFileSync("./static/" + filename);
     });
     return Object.freeze(Static);
 })();
@@ -425,7 +425,7 @@ function handler(request, response) {
             // We replace:
             //  - The OpenGraph place-holder with the OpenGraph data
             //  - References to static files to the bare domain to capitalize on browser caching
-            let content = Static["/index.html"];
+            let content = Static["/index.html"].toString();
             content = content.replace("<!-- OpenGraph -->", getOpenGraph(takoyaki.urlToLabel(host)));
             content = replaceLinks(content);
 
@@ -437,7 +437,7 @@ function handler(request, response) {
         if (Static[pathname]) {
             const contentType = ContentTypes[pathname.toUpperCase().split(".")[1]] || "application/octet-stream";
             let content = Static[pathname];
-            if (pathname === "/index.html") { content = replaceLinks(content); }
+            if (contentType.split("/")[0] === "text") { content = replaceLinks(content.toString()); }
             return send(content, contentType);
         }
 
