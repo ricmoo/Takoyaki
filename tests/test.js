@@ -6,7 +6,7 @@ const { resolve } = require("path");
 const exec = require("child_process").exec;
 
 const ethers = require("ethers");
-const { compile } = require("@ethersproject/cli/solc");
+const { compile } = require("@ethersproject/cli/lib/solc");
 
 const Takoyaki = require("./takoyaki");
 
@@ -235,22 +235,12 @@ describe("Admin Tasks", function() {
 
 describe("Name Registration (happy path)", function() {
     it("can register test.takoyaki.eth (no dust wallet)", async function() {
+        const label = "test";
         let signer = await provider.createSigner();
-        let takoyaki = Takoyaki.connect(signer);
-        let salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
+        await Takoyaki.register(provider, signer, label);
 
-        let tx = await takoyaki.commit("test", signer.address, salt, ethers.constants.AddressZero, 0);
-        let receipt = await tx.wait();
-        // @TODO: check logs in receipt
-
-        await provider.mineBlocks(5);
-
-        tx = await takoyaki.reveal("test", signer.address, salt);
-        receipt = await tx.wait();
-        // @TODO: check logs in receipt
-
-        let owner = await provider.resolveName("test.takoyaki.eth");
-        assert.equal(owner, signer.address, "test.takoyaki.eth owner is not buyer");
+        let owner = await provider.resolveName(`${label}.takoyaki.eth`);
+        assert.equal(owner, signer.address, `${label}.takoyaki.eth owner is not buyer`);
     });
 
     it("can register test2.takoyaki.eth (with dust wallet)", async function() {
@@ -317,8 +307,12 @@ describe("Commits and reveals", function() {
         const signer = await provider.createSigner();
         const takoyaki = Takoyaki.connect(signer);
         const salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
+        const blindedCommit = await takoyaki.makeBlindedCommitment(label, signer.address, salt);
 
-        let tx = await takoyaki.commit(label, signer.address, salt, ethers.constants.AddressZero, 0);
+        const fee = await takoyaki.fee(label);
+        const options = { value: fee };
+
+        let tx = await takoyaki.commit(blindedCommit, ethers.constants.AddressZero, 0, options);
         let receipt = await tx.wait();
 
         // fast forward past the max commit blocks
@@ -885,6 +879,7 @@ describe("ERC-721 Operations", function() {
         const nextOwner = { address: ethers.constants.AddressZero };
         return assert.rejects(Takoyaki.safeTransfer(signer, signer, nextOwner, tokenId),
             { code: "CALL_EXCEPTION" }, "safeTransfer expired token should fail");
+
     });
 });
 
