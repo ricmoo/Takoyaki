@@ -6,7 +6,7 @@ const { resolve } = require("path");
 const exec = require("child_process").exec;
 
 const ethers = require("ethers");
-const { compile } = require("@ethersproject/cli/lib/solc");
+const { solc } = require("@ethersproject/cli");
 
 const Takoyaki = require("./takoyaki");
 
@@ -65,7 +65,7 @@ before(async function() {
 
     let code = null;
     try {
-        code = compile(sourceMapper.source, {
+        code = solc.compile(sourceMapper.source, {
             optimize: true
         }).filter((contract) => (contract.name === "TakoyakiRegistrar"))[0];
     } catch (e) {
@@ -84,7 +84,7 @@ before(async function() {
     let walletSourceMapper = new SourceMapper(walletSource);
     let walletCode = null;
     try {
-        walletCode = compile(walletSourceMapper.source, {
+        walletCode = solc.compile(walletSourceMapper.source, {
             optimize: true
         }).filter((contract) => (contract.name === "Wallet"))[0];
     } catch (e) {
