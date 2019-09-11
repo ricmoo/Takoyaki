@@ -1,7 +1,7 @@
 'use strict';
 
 const ethers = require('ethers');
-const Takoyaki = require('../lib');
+const Takoyaki = require('../lib/lib');
 
 const getEvent = (contract, receipt, eventName) =>
   receipt.logs
@@ -13,12 +13,16 @@ const register = async (provider, signer, label) => {
   const takoyaki = Takoyaki.connect(signer);
   const salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
 
+  const fee = await takoyaki.fee(label);
+  const options = { value: fee };
+
+  const blindedCommit = await takoyaki.makeBlindedCommitment(label, signer.address, salt);
+
   let tx = await takoyaki.commit(
-    label,
-    signer.address,
-    salt,
+    blindedCommit,
     ethers.constants.AddressZero,
-    0
+    0,
+    options
   );
   let receipt = await tx.wait();
 
@@ -48,15 +52,15 @@ const getTokenId = (contract, receipt) => {
 };
 
 const safeTransfer = async (signer, owner, newOwner, tokenId, data) => {
-  const takoyaki = Takoyaki.connect(signer);
+  const abi = data
+    ? [ "function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public @150000" ]
+    : [ "function safeTransferFrom(address from, address to, uint256 tokenId) public @150000"];
 
-  const command = data
-    ? 'safeTransferFrom(address,address,uint256,bytes)'
-    : 'safeTransferFrom(address,address,uint256)';
+  let contract = new ethers.Contract("takoyaki.eth", abi, signer);
 
   const tx = data
-    ? await takoyaki[command](owner.address, newOwner.address, tokenId, data)
-    : await takoyaki[command](owner.address, newOwner.address, tokenId);
+    ? await contract.safeTransferFrom(owner.address, newOwner.address, tokenId, data)
+    : await contract.safeTransferFrom(owner.address, newOwner.address, tokenId);
 
   const receipt = await tx.wait();
   return receipt;
@@ -66,12 +70,15 @@ const submitBlindedCommit = async (provider, signer, label) => {
   const salt = ethers.utils.keccak256(ethers.utils.randomBytes(32));
 
   const takoyaki = Takoyaki.connect(signer);
+  const fee = await takoyaki.fee(label);
+  const options = { value: fee };
+
+  const blindedCommit = await takoyaki.makeBlindedCommitment(label, signer.address, salt);
   let tx = await takoyaki.commit(
-    label,
-    signer.address,
-    salt,
+    blindedCommit,
     ethers.constants.AddressZero,
-    0
+    0,
+    options
   );
 
   const receipt = await tx.wait();
@@ -90,7 +97,10 @@ const submitBlindedCommit = async (provider, signer, label) => {
     );
   }
 
-  const blindedCommit = commitEvent.values[1];
+  if( blindedCommit !== commitEvent.values[1]) {
+     throw new Error(`blindedCommit mismatch, expect ${blindedCommit} got ${commitEvent.values[1]}`);
+  }
+
   return blindedCommit;
 };
 
