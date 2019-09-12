@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" data:prod="-" href="./static/style.css" />
     <link rel="stylesheet" media="only screen and (max-width:700px)" data:prod="-" href="./static/style-mobile.css" />
-    <link rel="icon" type="image/x-icon" data:prod="-" href="./favicon.ico" />
+    <link rel="icon" type="image/x-icon" data:prod="-" href="./static/favicon.ico" />
     <meta charset="UTF-8">
     <!-- OpenGraph -->
 </head>
@@ -51,7 +51,7 @@
                 <a id="link-metamask" href="https://metamask.io/" target="_blank">
                     <div class="button enabled metamask-logo">
 
-                        <div class="img"><img data:prod="-" src="./logo-metamask.svg" /></div>
+                        <div class="img"><img data:prod="-" src="./static/logo-metamask.svg" /></div>
                         <div>Ethereum not detected...</div>
                         <div class="small">(download MetaMask extension)</div>
                     </div>
@@ -74,16 +74,14 @@
         <div class="title" id="label"></div>
         <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
         <div class="takoyaki" id="takoyaki"></div>
-        <div class="icon hidden" id="icon-copy">
-            <div class="info" id="info-copy">copy?</div>
-            <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
-                <path style="fill: #000000" d="M457.8,198.6l-0.1-0.2l-0.2-0.2c-0.1-0.1-0.1-0.1-0.1-0.1l-91.7-91.7l0,0c-2.1-2.1-4.9-3.4-8.1-3.4H171 c-17.3,0-31.2,14-31.2,31.2v332.7c0,17.3,14,31.2,31.2,31.2h258.4c17.3,0,31.2-14,31.2-31.2V206.1 C460.7,203.2,459.5,200.6,457.8,198.6z M355,142.8l65.5,65.4H355V142.8z M427.4,464.7H173V241.6V136h149v105.6h105.5V464.7z " />
-                <path style="fill: #000000" d="M89.5,375.9c9.2,0,16.6,7.5,16.6,16.6c0,0,0,0.1,0,0.1h0l0,0c-0.1,9.1-7.5,16.5-16.6,16.5h-7 c-17.3,0-31.2-14-31.2-31.2V45.2C51.3,28,65.3,14,82.5,14H269c3.2,0,6,1.3,8,3.4l0.1,0c8,8,16.1,16.1,24.1,24.1 c-0.1,0.1-0.1,0.1-0.1,0.1c6.1,6.6,5.9,16.8-0.2,23c-6.4,6.5-17.1,6.5-23.7-0.2c-5.8-5.8-11.6-11.6-17.4-17.4 c-58.4,0-116.8,0-175.2,0v105.6v223.1H89.5L89.5,375.9z " />
-            </svg>
+        <div class="address">
+            <div class="button" id="button-adopt"><div>Adopt me...</div></div>
+            <div class="hexstring" id="address">
+                <div id="addr-top"> </div>
+                <div id="spacer"></div>
+                <div id="addr-bottom"> </div>
+            </div>
         </div>
-        <!-- This div is "pre"; so be careful when modifying its contents -->
-        <div class="address" id="address"><div class="button" id="button-adopt"><div>Adopt me...</div></div>
-            <!-- preserve space --></div>
     </div>
     <div class="background bottom"></div>
     <input id="clipboard" />

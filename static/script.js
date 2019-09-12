@@ -1,4 +1,5 @@
 (function() {
+
     function getSvg(traits) {
         return Takoyaki.getSvg(traits).replace("<?xml version=\"1.0\" encoding=\"utf-8\"?>", "");
     }
@@ -169,38 +170,18 @@
     }
 
     {
-        const iconCopy = document.getElementById("icon-copy");
-        const infoCopy = document.getElementById("info-copy");
-        const input = document.getElementById("clipboard");
         const address = document.getElementById("address");
 
-        let timer = null;
-
-        iconCopy.onclick = function() {
-            if (timer) { clearTimeout(timer); }
-            timer = setTimeout(() => {
-                infoCopy.textContent = "copy?";
-                infoCopy.classList.remove("highlight");
-                timer = null;
-            }, 1000);
-            try {
-                input.value = ethers.utils.getAddress(address.textContent.replace(/\s/g, ""));
-                input.focus();
-                input.select();
-                document.execCommand('copy');
-                infoCopy.textContent = "Copied!";
-            } catch (error) {
-                infoCopy.textContent = "error...";
-                console.log(error);
-            }
-            infoCopy.classList.add("highlight");
+        address.oncopy = function(event) {
+            event.clipboardData.setData("text/plain", address.textContent.replace(/\s/g, ""));
+            event.preventDefault();
         };
     }
 
     // The label we are viewing (or "" for the root)
     // (for debugging, modify /etc/hosts to include LABEL.takoyaki.local and takoyaki.local)
-    const local = (location.hostname.split(".").pop() === "local");
     const label = Takoyaki.urlToLabel(location.hostname);
+    const local = (location.hostname.split(".").pop() === "local");
 
     const errors = {
         UNSUPPORTED_NETWORK: "UNSUPPORTED_NETWORK"
@@ -297,6 +278,7 @@
         }
     }
 
+    // If iOS or Android, link MetaMask for launch into Takoyaki or install then launch into Takoyaki
     {
         const userAgentComps = [ ];
         (navigator.userAgent || navigator.vendor || window.opera || "").replace(/([a-z0-9]+)/ig, function(all, word) {
@@ -319,7 +301,6 @@
     function draw(traits) {
         TakoyakiContainer.innerHTML = getSvg(traits);
     }
-
 
     const pendingHints = { };
 
@@ -399,37 +380,6 @@
         return true;
     }
 
-    function updateAddress(provider, tokenId) {
-        let nodehash = ethers.utils.keccak256(ethers.utils.concat([
-            ethers.utils.namehash("takoyaki.eth"),
-            tokenId
-        ]));
-
-        // Get the address (if any) and update the UI
-        provider.call({
-            to: provider.getNetwork().then((n) => n.ensAddress),
-            data: ("0x0178b8bf" + nodehash.substring(2))
-        }).then((data) => {
-            let resolverAddr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
-            if (resolverAddr === ethers.constants.AddressZero) { return null; }
-
-            return provider.call({
-                to: ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12)),
-                data: ("0x3b3b57de" + nodehash.slice(2))
-            }).then((data) => {
-                let addr = ethers.utils.getAddress(ethers.utils.hexDataSlice(data, 12));
-                document.getElementById("address").textContent = (
-                    addr.substring(0, 12) + " " +
-                    addr.substring(12, 22) + "      \n        " +
-                    addr.substring(22, 32) + " " +
-                    addr.substring(32, 42) + "    "
-                );
-                document.getElementById("icon-copy").classList.remove("hidden");
-                return addr;
-            });
-        });
-    }
-
     // Card view of a single label
     if (label) {
         console.log("LABEL", label);
@@ -448,48 +398,44 @@
 
         providerPromise.then((provider) => {
 
-            let contract = Takoyaki.connect(provider);
-            contract.getTraits(tokenId).then((traits) => {
+            const contract = Takoyaki.connect(provider);
 
-                let traitsDraw = ethers.utils.shallowCopy(traits);
-                traitsDraw.state = 0;
-                draw(traitsDraw);
+            let polling = false;
 
-                function drawNext() {
+            function check(blockNumber) {
+                if (blockNumber) { hints.blockNumber = blockNumber; }
 
-                    if (traitsDraw.state < traits.state) {
-                        traitsDraw.state++;
-                        draw(traitsDraw);
-                        setTimeout(drawNext, 200);
+                contract.getTraits(tokenId, hints).then((traits) => {
+                    draw(traits);
 
-                        if (traitsDraw.state === 5) {
-                            updateAddress(provider, tokenId);
+                    if (traits.genes.addr) {
+                        document.body.classList.add("has-addr");
+                        const addr = traits.genes.addr;
+                        document.getElementById("addr-top").textContent = " " + addr.substring(0, 12) + " " + addr.substring(12, 22) + " ";
+                        document.getElementById("addr-bottom").textContent = " " + addr.substring(22, 32) + " " + addr.substring(32, 42) + " ";
+                        document.getElementById("spacer").remove();
+                    }
+
+                    if (traits.state === 5) {
+                        if (polling) {
+                            provider.off("block", check);
+                            polling = false;
                         }
-
-                    } else if (traits.state < 5) {
+                    } else {
                         if (traits.genes.status === "available") {
+                            AdoptButton.classList.add("available");
                             AdoptButton.classList.add("enabled");
                         }
 
-                        function onBlock(blockNumber) {
-                            hints.blockNumber = blockNumber
-
-                            contract.getTraits(tokenId, hints).then((traits) => {
-                                draw(traits);
-
-                                // Done; Unsubscribe!
-                                if (traits.state === 5) {
-                                    updateAddress(provider, tokenId);
-                                    provider.off("block", onBlock);
-                                }
-                            });
+                        if (!polling) {
+                            provider.on("block", check);
+                            polling = true;
                         }
-
-                        provider.on("block", onBlock);
                     }
-                }
-                setTimeout(drawNext, 200);
-            });
+                });
+            }
+
+            check();
         });
 
     // Search view
