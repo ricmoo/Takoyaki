@@ -8,6 +8,7 @@ export declare type Genes = {
     commitBlock?: number;
     revealBlock?: number;
     name?: string;
+    addr?: string;
     expires?: number;
     status?: State;
     owner?: string;

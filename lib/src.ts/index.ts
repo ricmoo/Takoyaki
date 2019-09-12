@@ -48,6 +48,7 @@ export type Genes = {
     revealBlock?: number;
 
     name?: string;
+    addr?: string;
 
     expires?: number;
     status?: State;
@@ -498,6 +499,7 @@ class TakoyakiContract extends Contract {
             seeds: [ ],
 
             name: (hints.name || tokenIdCache[tokenId] || null),
+            addr: null,
 
             expires: traits.expires,
             status: (<State>(["available", "grace", "owned"][traits.status])),
@@ -510,7 +512,10 @@ class TakoyakiContract extends Contract {
 
         let promises: { [ key: string ]: Promise<any> } = { };
 
-        if (!genes.name && genes.revealBlock) {
+        if (genes.name) {
+            promises.addr = this.provider.resolveName(genes.name + ".takoyaki.eth");
+
+        } else if (genes.revealBlock) {
             let filter = this.filters.Registered(null, genes.tokenId);
             promises.name = this.queryFilter(filter, genes.revealBlock, genes.revealBlock).then((events) => {
                 let result = null;
@@ -523,6 +528,11 @@ class TakoyakiContract extends Contract {
                     tokenIdCache[genes.tokenId] = name;
                     result = name;
                 });
+
+                if (result) {
+                    promises.addr = this.provider.resolveName(name + ".takoyaki.eth");
+                }
+
                 return result;
             });
         }
@@ -555,6 +565,10 @@ class TakoyakiContract extends Contract {
 
         if (values.name && !genes.name) {
             genes.name = values.name;
+        }
+
+        if (values.addr && !genes.addr) {
+            genes.addr = values.addr;
         }
 
         genes.seeds = [
