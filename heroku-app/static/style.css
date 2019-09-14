@@ -13,62 +13,16 @@ div {
     box-sizing: border-box;
 }
 
+input {
+    box-sizing: border-box;
+}
+
 .center {
     text-align: center;
 }
 
 .warning {
     color: #d44;
-}
-
-#clipboard {
-    position: absolute;
-    left: 100px;
-    top: -100px;
-}
-
-.icon {
-    cursor: pointer;
-    height: 30px;
-    opacity: 0.2;
-    position: absolute;
-    right: 30px;
-    transition: opacity 0.1s linear;
-    width: 30px;
-    z-index: 3;
-}
-
-.icon:hover {
-    opacity: 1;
-}
-
-.icon .info {
-    bottom: 0px;
-    color: #444;
-    font-family: sans-serif;
-    font-size: 14px;
-    left: 50%;
-    opacity: 0;
-    padding: 10px 15px;
-    pointer-events: none;
-    position: absolute;
-    text-align: center;
-    transform: translate(-50%, 90%);
-    transition: opacity 0.1s linear, transform 0.1s linear;
-}
-
-.icon.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.icon .info.highlight {
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.icon:hover .info {
-    opacity: 1;
 }
 
 #background {
@@ -157,7 +111,7 @@ body.animated #background .tile div.highlight {
     box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.25);
     display: none;
     left: 50%;
-    padding: 30px 40px 40px;
+    padding: 30px 40px 20px;
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -220,6 +174,48 @@ body.animated #background .tile div.highlight {
     white-space: nowrap;
 }
 
+.searchbar {
+    background: #fff;
+    border: 3px solid #000;
+    border-radius: 29px;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+    font-size: 30px;
+    left: 30px;
+    line-height: 50px;
+    height: 58px;
+    padding: 0px 20px;
+    position: absolute;
+    top: 30px;
+    transition: transform 0.2s ease-out;
+    width: 300px;
+    z-index: 1000000;
+}
+
+body.pulse .searchbar {
+    transform: scale(1.2, 1.2);
+    transition: none;
+}
+
+.searchbar input::placeholder {
+    font-style: italic;
+}
+
+.searchbar .icon-search {
+    display: inline-block;
+    position: absolute;
+    transform: rotate(45deg);
+}
+
+.searchbar input {
+    border: none;
+    outline: none;
+    font-size: 22px;
+    margin: 0;
+    padding: 0 5px 0 30px;
+    width: 100%;
+}
+
+
 .subtitle {
     color: #aaa;
     font-family: monospace;
@@ -257,10 +253,6 @@ body.animated #background .tile div.highlight {
 .button.metamask-logo .img img {
    height: 100%;
    width: 100%;
-}
-
-#search .button-container {
-    padding: 40px 0;
 }
 
 .about .background.overlay {
@@ -329,13 +321,53 @@ body.animated #background .tile div.highlight {
 }
 
 .address {
+    margin: auto: 0;
+    position: relative;
+    text-align: center;
+}
+
+.address .hexstring {
     color: #444;
     font-family: monospace;
     font-size: 18px;
     letter-spacing: 0.1ex;
+    pointer-events: none;
     position: relative;
-    text-align: center;
+    -moz-user-select: all;
+    -webkit-user-select: all;
+    -ms-user-select: all;
+    user-select: all;
+}
+
+body.has-addr .hexstring {
+    pointer-events: auto;
+}
+
+.address .hexstring div {
+    display: inline-block;
+}
+
+#addr-top {
+    margin-left: -40px;
     white-space: pre;
+}
+
+#spacer {
+    display: block;
+    height: 0;
+}
+
+#addr-bottom {
+    margin-right: -58px;
+    white-space: pre;
+}
+
+#button-adopt {
+   display: none;
+}
+
+#button-adopt.available {
+   display: block;
 }
 
 .about {
@@ -348,15 +380,11 @@ body.animated #background .tile div.highlight {
     margin-top: -20px;
     margin-left: -40px;
     height: 100%;
-    padding: 20px 44px;
+    padding: 10px 44px 40px;
     position: absolute;
     transition: opacity 0.1s linear;
     width: 100%;
     z-index: 3;
-}
-
-.about .shade {
-    display: none;
 }
 
 .about.hidden {
@@ -370,6 +398,7 @@ body.animated #background .tile div.highlight {
 }
 
 .about p {
+    font-size: 18px;
     margin: auto 0;
     line-height: 2.6ex;
 }
@@ -410,9 +439,34 @@ body.animated #background .tile div.highlight {
 }
 
 
+#search .title {
+    color: #999;
+    font-size: 30px;
+    font-family: sans-serif;
+}
+
 #card .about .title {
     color: #999;
     font-size: 30px;
     font-family: sans-serif;
+}
+
+#search p {
+    font-size: 18px;
+    line-height: 2.6ex;
+}
+
+#search p a {
+    border-bottom: 1px dashed #00f;
+    color: #44f;
+    padding-left: 2px;
+    padding-right: 2px;
+    dddfont-family: sans-serif;
+    text-decoration: none;
+}
+
+#search p a:hover {
+    border-bottom: 1px solid #000;
+    color: #000;
 }
 

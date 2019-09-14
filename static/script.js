@@ -169,12 +169,37 @@
         setInterval(highlight, 12000);
     }
 
+    // Set up the address copy; remove whitespace from the address
     {
         const address = document.getElementById("address");
 
         address.oncopy = function(event) {
             event.clipboardData.setData("text/plain", address.textContent.replace(/\s/g, ""));
             event.preventDefault();
+        };
+    }
+
+    // Set up the searchbar
+    {
+        const searchbar = document.getElementById("searchbar");
+
+        let lastValue = searchbar.value;
+        searchbar.oninput = function(event) {
+            const value = searchbar.value;
+            if (ethers.utils.toUtf8Bytes(value).length > 20 || value.match(/\.|\s/)) {
+                searchbar.value = lastValue;
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+            lastValue = value;
+            return true;
+        }
+
+        searchbar.onkeyup = function(event) {
+            if (event.which === 13) {
+                location.href = Takoyaki.labelToUrl(searchbar.value, local);
+            }
         };
     }
 
@@ -442,45 +467,16 @@
     } else {
         const Search = document.getElementById("search");
         Search.style.display = "block";
-
-        let input = document.getElementById("input-search");
-        let button = document.getElementById("button-search");
-
-        input.onkeyup = function (event) {
-            if (!button.classList.contains("enabled")) { return; }
-            if (event.which === 13) {
-                location.href = Takoyaki.labelToUrl(input.value, local);
-            }
+        function pulse(wait, callback) {
+            setTimeout(function() {
+                document.body.classList.add("pulse");
+                setTimeout(function() {
+                    document.body.classList.remove("pulse");
+                    callback();
+                }, 1);
+            }, wait);
         }
-
-        input.oninput = function () {
-            let length = ethers.utils.toUtf8Bytes(input.value).length;
-            let error = null;
-            if (length === 0) {
-                error = " ";
-            } else if (input.value.toLowerCase().substring(0, 2) === "0x") {
-                error = "Begins with \"0x\".";
-            } else if (length < 3) {
-                error = "Too short.";
-            } else if (length > 20) {
-                error = "Too long.";
-            }
-
-            if (error) {
-                button.classList.remove("enabled");
-            } else {
-                button.classList.add("enabled");
-            }
-
-            document.getElementById("search-warning").textContent = error;
-        }
-
-        button.onclick = function () {
-            if (!button.classList.contains("enabled")) { return; }
-            location.href = Takoyaki.labelToUrl(input.value, local);
-        }
-
-        input.focus();
+        pulse(1500, function() { pulse(300); });
     }
 
     AdoptButton.onclick = function() {

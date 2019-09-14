@@ -14,15 +14,36 @@
 <body>
     <div id="background"></div>
     <div class="background top"></div>
+    <div class="searchbar">
+        <div class="icon-search">&#9906;</div><input type="text" id="searchbar" placeholder="Choose your name..." autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" />
+    </div>
     <div id="search">
-        <div>
-            <input id="input-search" placeholder="takoyaki-name" type="text">
-        </div>
-        <div class="subtitle"><b>.</b>takoyaki<b>.</b>eth</div>
-        <div class="button-container">
-            <div id="search-warning"></div>
-            <div class="button" id="button-search">SEARCH</div>
-        </div>
+        <div class="title">Hello, please.</div>
+        <p>
+            When you adopt a <i>Takoyaki</i>, you choose its name, then a unique
+            Octopus Pancake Ball is born, as its random genome is plucked from the
+            blockchain.
+        </p>
+        <p>
+            Each Takoyaki NFT includes its ENS name, which simplifies
+            sharing your Ethereum address or it can be traded like a toy.
+        </p>
+        <p>
+           All proceeds go towards funding
+            <a target="_blank" href="https://github.com/ethers-io/ethers.js/">ethers</a>,
+            <a target="_blank" href="https://firefly.city">Firefly</a>,
+            <a target="_blank" href="https://meeseeks.app">meeseeks</a>,
+            <a target="_blank" href="https://takoyaki.cafe">Takoyaki</a>
+            and our other various open source projects.
+        </p>
+        <p>
+            Read more about it on our <a href="https://blog.ricmoo.com">blog</a>, follow us
+            on <a href="https://twitter.com/TakoyakiNFT">twitter</a> or browse the
+            <a href="https://github.com/ricmoo/Takoyaki/">source code</a>.
+        </p>
+        <p>
+            <i>*much hugs*</i>
+        </p>
     </div>
     <div id="card">
         <div id="about" class="about hidden">
@@ -30,23 +51,24 @@
             <a href="#" id="button-close">&times;</a>
             <div class="title">Adopting a Takoyaki</div>
             <p>
-                When you adopt a Takoyaki, your contributions go towards supporting our various projects, such as
+                Each Takoyaki adoption includes a 1 year registration for your
+                choosen ENS name, which will be the name of your random, newly
+                hatched Takoyaki non-fungible token, which you may continue to
+                renew annually or trade.
+            </p>
+            <p>
+                When you adopt a Takoyaki, your contributions go towards supporting
                 <a href="https://github.com/ethers-io/ethers.js/" target="_blank">ethers.js</a>,
-                <a href="https://takoyaki.cafe" target="_blank">Takoyaki</a>,
-                <a href="https://firefly.city" target="_blank">Firefly</a>,
-                <a href="https://meeseeks.app" target="_blank">Meeseeks</a> and our future random Ethereum ideas.
+                <a href="https://takoyaki.cafe/" target="_blank">Takoyaki</a>,
+                <a href="https://firefly.city/" target="_blank">Firefly</a>,
+                <a href="https://meeseeks.app/" target="_blank">Meeseeks</a> and
+                our other various open source projects.
             </p>
-            <p>
-                Each Takoyaki adoption includes a 1 year registration for your choosen ENS name, which will be the name of your random, newly
-                hatched Takoyaki non-fungible token, which you may continue to renew annually or transfer ownership of.
-            </p>
-            <!--
-            <p>
-                Follow us on
-                <a href="https://twitter.com/TakoyakiNFT/" target="_blank">Twitter</a>, or find out more on
-                <a href="https://github.com/ricmoo/Takoyaki/" target="_blank">GitHub</a>.
-            </p>
-            -->
+        <p>
+            Read more about it on our <a href="https://blog.ricmoo.com">blog</a>, follow us
+            on <a href="https://twitter.com/TakoyakiNFT">twitter</a> or browse the
+            <a href="https://github.com/ricmoo/Takoyaki/">source code</a>.
+        </p>
             <div id="about-no-ethereum" class="button-container hidden">
                 <a id="link-metamask" href="https://metamask.io/" target="_blank">
                     <div class="button enabled metamask-logo">
@@ -84,7 +106,6 @@
         </div>
     </div>
     <div class="background bottom"></div>
-    <input id="clipboard" />
 
     <script type="text/javascript" data:prod="-" src="./lib/node_modules/ethers/dist/ethers.umd.min.js"></script>
     <script type="text/javascript" data:prod="-" src="./lib/dist/takoyaki.umd.min.js"></script>
