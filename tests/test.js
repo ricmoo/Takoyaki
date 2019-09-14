@@ -1319,7 +1319,9 @@ describe("Name Validatation", function() {
     });
 
     describe("Punycode Conversion", function() {
-        [ "可爱的八爪鱼", "たこ焼き"
+        [
+            "\u53ef\u7231\u7684\u516b\u722a\u9c7c",
+            "\u305f\u3053\u713c\u304d"
         ].forEach((name) => {
             it(name, function() {
                 takoyakiContract.isValidLabel(name).then((isValid) => {
