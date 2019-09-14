@@ -1332,3 +1332,18 @@ describe("Name Validatation", function() {
     })
 });
 
+describe("EIP-165 (supportsInterface)", function() {
+    [
+        { interfaceId: "0x01ffc9a7", name: "EIP-165" },
+        { interfaceId: "0x80ac58cd", name: "ERC-721" },
+        { interfaceId: "0x5b5e139f", name: "EIP-721 (metadata extension)" },
+        { interfaceId: "0x28ed4f6c", name: "ENS Claim" },
+    ].forEach((test) => {
+        it(`supports ${ test.name }`, function() {
+            const contract = new ethers.Contract("takoyaki.eth", ABI, provider);
+            return contract.supportsInterface(test.interfaceId).then((enabled) => {
+                assert.ok(enabled);
+            });
+        });
+    });
+});

@@ -556,7 +556,7 @@ contract TakoyakiRegistrar {
 
     // ERC-721: 0x80ac58cd
     bytes4 constant private ERC721_ID = bytes4(
-        keccak256("balanceOf(uint256)") ^
+        keccak256("balanceOf(address)") ^
         keccak256("ownerOf(uint256)") ^
         keccak256("approve(address,uint256)") ^
         keccak256("getApproved(uint256)") ^
