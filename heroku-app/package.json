@@ -14,7 +14,7 @@
   "author": "Richard Moore <me@ricmoo.com> (https://www.ricmoo.com)",
   "license": "MIT",
   "dependencies": {
-    "aws-sdk": "2.521.0",
+    "aws-sdk": "2.814.0",
     "convert-svg-to-png": "^0.5.0",
     "ethers": ">=5.0.0-beta.157",
     "punycode": "^2.1.1",
