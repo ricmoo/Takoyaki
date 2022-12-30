@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@ethersproject/cli": ">=5.0.0-beta.143",
-    "mocha": "^6.2.0",
+    "mocha": "^10.2.0",
     "rollup": "^1.20.3",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-node-builtins": "^2.1.2",
